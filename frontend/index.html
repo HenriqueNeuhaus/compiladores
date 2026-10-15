@@ -3,53 +3,79 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Compiladores — Visualizador Educacional</title>
-  <style>
-    :root { color-scheme: light dark; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      background: #f5f6f8;
-      color: #1f2328;
-    }
-    main { text-align: center; padding: 16px; }
-    h1 { font-size: 2.5rem; margin: 0 0 8px; }
-    p { margin: 4px 0; color: #59636e; }
-    .erro { color: #cf222e; }
-    @media (prefers-color-scheme: dark) {
-      body { background: #0d1117; color: #e6edf3; }
-      p { color: #9198a1; }
-      .erro { color: #ff7b72; }
-    }
-  </style>
+  <title>Visualizador de Compiladores — Python</title>
+  <meta name="description" content="Software educacional para estudar análise léxica e sintática com um subconjunto de Python.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="stylesheet" href="css/estilo.css">
+  <script type="module" src="js/app.js"></script>
 </head>
 <body>
-  <main>
-    <h1 id="mensagem">Carregando…</h1>
-    <p>Visualizador educacional de análise léxica e sintática para Python</p>
-    <p id="status"></p>
+  <header class="cabecalho">
+    <div class="marca">
+      <h1>Visualizador de Compiladores</h1>
+      <p class="linguagem" id="linguagem">Linguagem analisada: <strong>Python</strong> (subconjunto)</p>
+    </div>
+
+    <ol class="caminho" aria-label="Fases do compilador neste software">
+      <li class="fase atual" aria-current="step">
+        <span class="fase-nome">Código-fonte</span>
+        <span class="fase-estado">disponível</span>
+      </li>
+      <li class="fase">
+        <span class="fase-nome">Tokens</span>
+        <span class="fase-estado">em breve</span>
+      </li>
+      <li class="fase">
+        <span class="fase-nome">Árvore sintática</span>
+        <span class="fase-estado">em breve</span>
+      </li>
+    </ol>
+  </header>
+
+  <main class="area">
+    <section class="painel painel-codigo" aria-labelledby="titulo-codigo">
+      <div class="painel-topo">
+        <h2 id="titulo-codigo">Código-fonte</h2>
+        <div class="seletor">
+          <label for="exemplo">Exemplo</label>
+          <select id="exemplo" name="exemplo">
+            <option value="">Escolha um programa pronto</option>
+          </select>
+        </div>
+      </div>
+      <p class="descricao-exemplo" id="descricao-exemplo" aria-live="polite"></p>
+
+      <div class="editor">
+        <pre class="numeros" id="numeros-linha" aria-hidden="true">1</pre>
+        <textarea id="codigo" name="codigo" spellcheck="false" autocapitalize="off" autocomplete="off"
+          aria-label="Código-fonte em Python" aria-describedby="dica-editor contador"
+          placeholder="# Escreva um programa em Python aqui&#10;x = 10&#10;print(x)"></textarea>
+      </div>
+
+      <div class="painel-base">
+        <p class="contador" id="contador">0 linhas, 0 caracteres</p>
+        <p class="dica" id="dica-editor">Tab insere quatro espaços. Para sair do editor pelo teclado, pressione Esc e depois Tab.</p>
+        <div class="acoes">
+          <button type="button" class="botao-secundario" id="limpar">Limpar</button>
+          <button type="button" class="botao-principal" id="analisar">Analisar código</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="painel painel-resultado" aria-labelledby="titulo-resultado">
+      <div class="painel-topo">
+        <h2 id="titulo-resultado">Resultado</h2>
+      </div>
+      <div class="resultado" id="resultado" role="status" aria-live="polite" data-estado="vazio"></div>
+
+      <div class="escopo">
+        <h3>O que o subconjunto vai incluir</h3>
+        <p>Atribuições, números, textos, operadores aritméticos e relacionais, <code>if</code>/<code>elif</code>/<code>else</code>, <code>while</code>, <code>print</code> e blocos por indentação.</p>
+        <p>Nesta versão o servidor recebe e valida o código. A separação em tokens e a árvore sintática chegam nas próximas etapas.</p>
+      </div>
+    </section>
   </main>
-  <script>
-    // A mensagem vem do backend: se aparecer "Hello, World!",
-    // frontend, backend e a comunicação entre eles estão funcionando.
-    fetch("/api/hello")
-      .then((resposta) => {
-        if (!resposta.ok) throw new Error("HTTP " + resposta.status);
-        return resposta.json();
-      })
-      .then((dados) => {
-        document.getElementById("mensagem").textContent = dados.message;
-        document.getElementById("status").textContent = "Mensagem recebida do backend.";
-      })
-      .catch((erro) => {
-        const msg = document.getElementById("mensagem");
-        msg.textContent = "Backend indisponível";
-        msg.className = "erro";
-        document.getElementById("status").textContent = erro.message;
-      });
-  </script>
 </body>
 </html>

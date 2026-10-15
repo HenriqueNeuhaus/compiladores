@@ -1,0 +1,271 @@
+/* Visualizador de Compiladores — estilo
+   Papel azulado de caderno técnico, tinta azul-marinho e um único tom
+   petróleo para a ação principal. Cores de estado só aparecem no resultado. */
+
+:root {
+  --papel: #eaf0f3;
+  --grade: #d5dfe5;
+  --folha: #ffffff;
+  --tinta: #17324d;
+  --tinta-suave: #4f6476;
+  --linha: #c3d0d9;
+  --acao: #145c73;
+  --acao-forte: #0e4558;
+  --margem: #d9a3a0;
+  --sucesso: #2c6a3f;
+  --sucesso-fundo: #e7f2ea;
+  --aviso: #7a4f00;
+  --aviso-fundo: #fbf1dc;
+  --erro: #a3271f;
+  --erro-fundo: #f9e6e4;
+  --foco: #e0a100;
+  --fonte-texto: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --fonte-codigo: "JetBrains Mono", "Cascadia Code", Consolas, "Courier New", monospace;
+  --raio: 6px;
+}
+
+* { box-sizing: border-box; }
+
+html { color-scheme: light; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--fonte-texto);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--tinta);
+  background-color: var(--papel);
+  background-image:
+    linear-gradient(var(--grade) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grade) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+h1, h2, h3 { margin: 0; line-height: 1.2; }
+
+:focus-visible { outline: 3px solid var(--foco); outline-offset: 2px; }
+
+/* Cabeçalho ------------------------------------------------------------- */
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px 20px;
+}
+
+.marca h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.01em; }
+.linguagem { margin: 4px 0 0; color: var(--tinta-suave); }
+.linguagem strong { color: var(--tinta); }
+
+/* Caminho das fases: o elemento que identifica o software */
+.caminho {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: fase;
+}
+.fase {
+  position: relative;
+  display: grid;
+  min-width: 132px;
+  padding: 10px 28px 10px 16px;
+  background: var(--folha);
+  border: 1px solid var(--linha);
+  counter-increment: fase;
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%, 10px 50%);
+  margin-left: -6px;
+  color: var(--tinta-suave);
+}
+.fase:first-child { margin-left: 0; clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%); }
+.fase-nome::before { content: counter(fase) ". "; }
+.fase-nome { font-weight: 700; }
+.fase-estado { font-size: 0.8125rem; }
+.fase.atual { background: var(--tinta); color: #ffffff; border-color: var(--tinta); }
+
+/* Área principal ---------------------------------------------------------- */
+.area {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 40px;
+}
+
+.painel {
+  display: flex;
+  flex-direction: column;
+  background: var(--folha);
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  box-shadow: 0 1px 0 var(--linha);
+}
+
+.painel-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px 12px;
+}
+.painel-topo h2 { font-size: 1.125rem; }
+
+.seletor { display: flex; align-items: center; gap: 8px; }
+.seletor label { color: var(--tinta-suave); }
+select {
+  font: inherit;
+  color: var(--tinta);
+  padding: 6px 10px;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  background: var(--folha);
+  max-width: 100%;
+}
+
+.descricao-exemplo {
+  margin: 0;
+  padding: 0 20px;
+  min-height: 1.5em;
+  font-size: 0.9375rem;
+  color: var(--tinta-suave);
+}
+
+/* Editor: folha com margem vermelha de caderno e numeração */
+.editor {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  margin: 12px 20px 0;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  overflow: hidden;
+  font-family: var(--fonte-codigo);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+.numeros {
+  margin: 0;
+  padding: 14px 10px 14px 14px;
+  min-width: 3.25em;
+  text-align: right;
+  color: #8aa0b0;
+  background: #f4f7f9;
+  border-right: 2px solid var(--margem);
+  overflow: hidden;
+  user-select: none;
+  font: inherit;
+}
+#codigo {
+  width: 100%;
+  min-height: 340px;
+  height: 340px;
+  resize: vertical;
+  margin: 0;
+  padding: 14px 16px;
+  border: 0;
+  outline: none;
+  font: inherit;
+  color: var(--tinta);
+  background: var(--folha);
+  tab-size: 4;
+  white-space: pre;
+  overflow: auto;
+}
+.editor:focus-within { box-shadow: 0 0 0 3px var(--foco); }
+
+.painel-base {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 16px;
+  align-items: center;
+  padding: 12px 20px 20px;
+}
+.contador { margin: 0; font-size: 0.875rem; color: var(--tinta-suave); }
+.dica { grid-column: 1; margin: 0; font-size: 0.8125rem; color: var(--tinta-suave); }
+.acoes { grid-column: 2; grid-row: 1 / span 2; display: flex; gap: 10px; }
+
+button {
+  font: inherit;
+  font-weight: 700;
+  padding: 10px 18px;
+  border-radius: var(--raio);
+  cursor: pointer;
+}
+.botao-principal { color: #ffffff; background: var(--acao); border: 1px solid var(--acao); }
+.botao-principal:hover { background: var(--acao-forte); }
+.botao-principal:disabled { cursor: progress; opacity: 0.75; }
+.botao-secundario { color: var(--tinta); background: var(--folha); border: 1px solid var(--linha); }
+.botao-secundario:hover { border-color: var(--tinta-suave); }
+
+/* Resultado ------------------------------------------------------------- */
+.resultado {
+  margin: 0 20px;
+  padding: 16px 18px;
+  min-height: 132px;
+  border-radius: var(--raio);
+  border-left: 4px solid var(--linha);
+  background: #f4f7f9;
+}
+.resultado-vazio { margin: 0; color: var(--tinta-suave); }
+.resultado h3 { font-size: 1rem; margin-bottom: 4px; }
+.resultado p { margin: 0; }
+.resultado[data-estado="sucesso"] { background: var(--sucesso-fundo); border-left-color: var(--sucesso); }
+.resultado[data-estado="sucesso"] h3 { color: var(--sucesso); }
+.resultado[data-estado="entrada"] { background: var(--aviso-fundo); border-left-color: var(--aviso); }
+.resultado[data-estado="entrada"] h3 { color: var(--aviso); }
+.resultado[data-estado="comunicacao"],
+.resultado[data-estado="inesperado"] { background: var(--erro-fundo); border-left-color: var(--erro); }
+.resultado[data-estado="comunicacao"] h3,
+.resultado[data-estado="inesperado"] h3 { color: var(--erro); }
+
+.detalhes {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 16px;
+  margin: 12px 0 0;
+  font-size: 0.9375rem;
+}
+.detalhes dt { color: var(--tinta-suave); }
+.detalhes dd { margin: 0; font-family: var(--fonte-codigo); font-weight: 600; }
+
+.escopo {
+  margin: 20px 20px 20px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--linha);
+  font-size: 0.9375rem;
+  color: var(--tinta-suave);
+}
+.escopo h3 { font-size: 0.9375rem; color: var(--tinta); margin-bottom: 6px; }
+.escopo p { margin: 0 0 8px; max-width: 60ch; }
+.escopo code { font-family: var(--fonte-codigo); font-size: 0.875em; color: var(--tinta); }
+
+/* Telas estreitas --------------------------------------------------------- */
+@media (max-width: 860px) {
+  .area { grid-template-columns: minmax(0, 1fr); }
+  .cabecalho { padding-top: 24px; }
+  .caminho { width: 100%; }
+  .fase { flex: 1; min-width: 0; padding-right: 20px; }
+}
+
+@media (max-width: 520px) {
+  .area, .cabecalho { padding-left: 16px; padding-right: 16px; }
+  .painel-topo, .painel-base { padding-left: 14px; padding-right: 14px; }
+  .editor, .resultado, .escopo { margin-left: 14px; margin-right: 14px; }
+  .descricao-exemplo { padding: 0 14px; }
+  .seletor { width: 100%; min-width: 0; }
+  .seletor select { flex: 1; width: 100%; min-width: 0; }
+  .painel-base { grid-template-columns: 1fr; }
+  .acoes { grid-column: 1; grid-row: auto; justify-content: flex-end; margin-top: 8px; }
+  .fase { font-size: 0.875rem; padding: 8px 14px 8px 12px; }
+  #codigo { min-height: 260px; height: 260px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
