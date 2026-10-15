@@ -165,13 +165,13 @@ docker compose up --build -d
 
 | Verificação | Resultado esperado | Status |
 | --- | --- | --- |
-| `docker compose up --build -d` | Imagens construídas e dois contêineres iniciados | ⬜ |
-| `docker compose ps` | `backend` com estado `healthy`, `frontend` em execução | ⬜ |
-| `curl http://localhost:8080/api/hello` | `{"message":"Hello, World!"}` | ⬜ |
-| http://localhost:8080 no navegador | Página exibe "Hello, World!" | ⬜ |
+| `docker compose up --build -d` | Imagens construídas e dois contêineres iniciados | ✅ |
+| `docker compose ps` | `backend` com estado `healthy`, `frontend` em execução | ✅ |
+| `curl http://localhost:8080/api/hello` | `{"message":"Hello, World!"}` | ✅ |
+| http://localhost:8080 no navegador | Página exibe "Hello, World!" | ✅ |
 | `docker compose down` | Contêineres e rede removidos | ⬜ |
 
-Data da validação: __/__/____ · Sistema operacional: ________ · Versão do Docker: ________
+Data da validação: 15/10/2026 · Sistema operacional: Windows (x64) · Docker: Docker Desktop
 
 ---
 
