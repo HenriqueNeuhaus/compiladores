@@ -169,9 +169,25 @@ docker compose up --build -d
 | `docker compose ps` | `backend` com estado `healthy`, `frontend` em execução | ✅ |
 | `curl http://localhost:8080/api/hello` | `{"message":"Hello, World!"}` | ✅ |
 | http://localhost:8080 no navegador | Página exibe "Hello, World!" | ✅ |
-| `docker compose down` | Contêineres e rede removidos | ⬜ |
+| `docker compose down` | Contêineres e rede removidos | ✅ |
 
-Data da validação: 15/10/2026 · Sistema operacional: Windows (x64) · Docker: Docker Desktop
+Data da validação: 15/10/2026 · Sistema operacional: Windows (x64), PowerShell ISE · Docker: Docker Desktop, Docker version 29.8.2, build 7fc2dff
+
+### Evidências
+
+**Subida dos contêineres e teste da API.** Imagens construídas, backend `healthy`, frontend publicado na porta 8080 e resposta `{"message":"Hello, World!"}`. O Docker Desktop mostra o projeto `compiladores` em execução.
+
+![docker compose up, docker compose ps e curl da API](docs/validacao/01-docker-compose-up.png)
+
+**Encerramento.** `docker compose down` para e remove os dois contêineres e a rede; o `docker compose ps` seguinte volta vazio e o Docker Desktop não lista mais contêineres.
+
+![docker compose down](docs/validacao/02-docker-compose-down.png)
+
+**Versão do Docker.**
+
+![docker --version](docs/validacao/03-docker-version.png)
+
+> **Observação:** as linhas em vermelho com `NativeCommandError` são um comportamento do PowerShell ISE, que exibe como erro qualquer texto que um programa escreve na saída de erro. O `curl.exe` e o `docker compose` escrevem ali o progresso, não falhas: os comandos terminaram com sucesso, como mostram a resposta da API e a lista de contêineres. No PowerShell comum ou no Windows Terminal, essas linhas não aparecem.
 
 ---
 
