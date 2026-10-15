@@ -66,7 +66,8 @@ compiladores/
 │   ├── index.html           # exibe a mensagem recebida do backend
 │   └── nginx.conf           # serve o HTML e repassa /api/ ao backend
 ├── docs/
-│   └── revisao-literatura.md
+│   ├── revisao-literatura.md
+│   └── validacao/           # capturas de tela da validação limpa
 ├── docker-compose.yml       # orquestra frontend e backend
 ├── .gitignore
 └── README.md
