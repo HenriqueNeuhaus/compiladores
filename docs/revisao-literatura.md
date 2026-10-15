@@ -48,7 +48,15 @@ Diante disso, propõe-se uma ferramenta interativa que conecte a teoria de autô
 
 ## 3. Fichamento dos Artigos
 
-Os artigos foram localizados no Google Acadêmico, na SBC OpenLib (SOL) e na Springer Link, com os termos *ensino de compiladores*, *compiler teaching tool* e *parsing visualization*.
+A busca foi feita em três bases, com os termos sugeridos para a tarefa, priorizando trabalhos publicados a partir de 2016:
+
+| Base | Termos de busca | Artigos selecionados encontrados |
+| --- | --- | --- |
+| SBC OpenLib (SOL) | *ensino de compiladores* | Artigos 1 e 3 |
+| Google Acadêmico | *"teaching compilers" OR "ensino de compiladores" tool* (a partir de 2016) | Artigos 1 e 3 |
+| Springer Link | *parsing algorithm visualizer compiler construction teaching* | Artigo 2 |
+
+Dos resultados, foram lidos os resumos e escolhidos os três trabalhos mais alinhados ao escopo: ferramentas visuais e interativas para as fases de análise léxica e sintática, com algum tipo de avaliação com estudantes.
 
 ### Artigo 1 — Ferramenta Interativa para o Ensino de Compiladores (2022)
 
@@ -65,7 +73,7 @@ Os artigos foram localizados no Google Acadêmico, na SBC OpenLib (SOL) e na Spr
 **Referência:** SANGAL, S.; KATARIA, S.; TYAGI, T. et al. PAVT: a tool to visualize and teach parsing algorithms. *Education and Information Technologies*, v. 23, p. 2737–2764, 2018. DOI: [10.1007/s10639-018-9739-x](https://doi.org/10.1007/s10639-018-9739-x)
 
 - **Objetivo:** apresentar um visualizador capaz de mostrar a construção e a execução de seis algoritmos de análise sintática: preditivo LL(1), SLR, LR canônico, LALR, Earley e CYK.
-- **Metodologia:** desenvolvimento de uma ferramenta desktop que recebe uma gramática livre de contexto e uma cadeia de entrada. A ferramenta foi usada em disciplinas de Compiladores de graduação e pós-graduação, com coleta de opinião dos estudantes.
+- **Metodologia:** desenvolvimento de uma aplicação para desktop, distribuída para download no SourceForge, que recebe uma gramática livre de contexto e uma cadeia de entrada. A ferramenta foi usada em disciplinas de Compiladores de graduação e pós-graduação, com coleta de opinião dos estudantes.
 - **Resultados:** 89% dos estudantes disseram que a ferramenta ajudou a entender os algoritmos de parsing, e 88% a usaram para comparar algoritmos entre si.
 - **Contribuições para o meu trabalho:** oferece evidência quantitativa do benefício de visualizar a análise sintática. Mostra também quais artefatos são didaticamente úteis: conjuntos FIRST/FOLLOW, tabela de parsing, pilha, árvore e derivação.
 - **Limitações:** trabalha apenas com gramáticas abstratas e cadeias curtas, sem ligação com uma linguagem de programação real. Não aborda a análise léxica.
@@ -88,7 +96,7 @@ Nenhum dos três trabalhos combina análise léxica e sintática passo a passo c
 
 | Critério | Graciano Junior et al. (2022) | Sangal et al. (2018) | Borela et al. (2025) | **Proposta deste trabalho** |
 | --- | --- | --- | --- | --- |
-| Plataforma | Web responsiva | Desktop | Web | Web |
+| Plataforma | Web responsiva | Desktop (download) | Web | Web |
 | Fases abordadas | Léxica, sintática | Sintática | Todas (até código-alvo e execução) | Léxica, sintática |
 | Recursos visuais | Autômato animado, árvore de derivação passo a passo | Tabelas FIRST/FOLLOW, tabela de parsing, pilha, árvore, derivação | Lista de tokens, árvore sintática, tabela de símbolos, LLVM IR, Assembly | Autômato animado, tokens com INDENT/DEDENT, árvore de derivação e AST passo a passo |
 | Passo a passo | Sim | Sim | Não | Sim |
