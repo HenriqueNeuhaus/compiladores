@@ -20,3 +20,35 @@ services:
       backend:
         condition: service_healthy
     restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Serviços de teste: só são criados com --profile testes.
+  # Veja a seção "Testes" do README ou rode scripts/testar.ps1 / scripts/testar.sh.
+  # ---------------------------------------------------------------------------
+
+  testes-backend:
+    profiles: ["testes"]
+    build: ./backend
+    command: ["python", "-m", "unittest", "discover", "-s", "tests", "-t", ".", "-v"]
+
+  testes-frontend:
+    profiles: ["testes"]
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app:ro
+    command: ["node", "--test", "tests/unit/*.test.js"]
+
+  testes-e2e:
+    profiles: ["testes"]
+    image: mcr.microsoft.com/playwright/python:v1.56.0-noble
+    working_dir: /projeto
+    volumes:
+      - .:/projeto:ro
+    environment:
+      BASE_URL: http://frontend
+      PYTHONDONTWRITEBYTECODE: "1"
+    depends_on:
+      frontend:
+        condition: service_healthy
+    command: ["python", "-m", "unittest", "tests.e2e.test_interface", "-v"]
