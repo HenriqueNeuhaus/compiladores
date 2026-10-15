@@ -1,138 +1,183 @@
-# Software Educacional para o Ensino de Compiladores
+# Compiladores — Visualizador Educacional
 
-Visualizador interativo, voltado a graduandos de Ciência da Computação, que mostra passo a passo as **análises léxica e sintática** de programas escritos em um subconjunto da linguagem **Python**.
+Software educacional web que mostra, passo a passo, as **análises léxica e sintática** de programas escritos em um subconjunto da linguagem **Python**. É voltado a estudantes de graduação em Ciência da Computação que cursam a disciplina de Compiladores.
 
-> Trabalho de definição do problema e revisão inicial de literatura.
+> **Etapa atual:** 1 — escolha da linguagem, estrutura inicial e ambiente Docker. A aplicação exibe "Hello, World!" vindo do backend.
+>
+> A definição do problema e a revisão de literatura estão em [`docs/revisao-literatura.md`](docs/revisao-literatura.md).
 
 ## Sumário
 
-1. [Definição do Problema de Estudo](#1-definição-do-problema-de-estudo)
-2. [Objetivo Geral e Justificativa Inicial](#2-objetivo-geral-e-justificativa-inicial)
-3. [Fichamento dos Artigos](#3-fichamento-dos-artigos)
-4. [Análise Comparativa (Quadro de Síntese)](#4-análise-comparativa-quadro-de-síntese)
-5. [Anexos](#5-anexos)
-6. [Referências](#referências)
+1. [Linguagem escolhida e subconjunto](#1-linguagem-escolhida-e-subconjunto)
+2. [Estrutura do repositório](#2-estrutura-do-repositório)
+3. [Arquitetura](#3-arquitetura)
+4. [Pré-requisitos](#4-pré-requisitos)
+5. [Como executar](#5-como-executar)
+6. [Como encerrar](#6-como-encerrar)
+7. [Validação de instalação limpa](#7-validação-de-instalação-limpa)
+8. [Próximas etapas](#8-próximas-etapas)
 
 ---
 
-## 1. Definição do Problema de Estudo
+## 1. Linguagem escolhida e subconjunto
 
-O software proposto é um visualizador interativo, voltado a graduandos de Ciência da Computação, que mostra passo a passo as análises léxica e sintática de programas escritos em um subconjunto da linguagem Python.
+### Linguagem analisada: Python
 
-### 1.1 Fronteira tecnológica
-
-A linguagem-alvo é **Python**, escolhida por três razões:
-
-- É a linguagem com que muitos estudantes iniciam a graduação, o que reduz a barreira de entrada: o aluno analisa um código que já sabe ler.
-- Sua sintaxe enxuta permite definir um subconjunto pequeno (atribuições, expressões, `if`, `while`, `def`) sem perder realismo.
-- Python tem uma particularidade léxica pouco explorada no ensino: a indentação gera os tokens `INDENT` e `DEDENT`, o que torna a análise léxica mais interessante do que em linguagens delimitadas por chaves.
-
-O próprio software também será implementado em Python, com interface web, aproveitando os módulos nativos `tokenize` e `ast` como referência para validar os resultados exibidos.
-
-**Público-alvo:** estudantes de graduação em Ciência da Computação e cursos afins que estejam cursando ou revisando a disciplina de Compiladores.
-
-### 1.2 Fronteira pedagógica
-
-| Aspecto | Definição |
+| Motivo | Explicação |
 | --- | --- |
-| Fases abordadas | Análise léxica (autômatos finitos) e análise sintática (árvore de derivação e AST) |
-| Tipo de ferramenta | Visualizador interativo |
-| Abordagem | Híbrida: breve explicação teórica seguida de prática guiada |
+| Familiaridade | É a linguagem com que muitos alunos começam a graduação; o estudante analisa um código que já sabe ler. |
+| Sintaxe enxuta | Permite definir um subconjunto pequeno sem perder realismo. |
+| Desafio léxico próprio | A indentação gera os tokens `INDENT` e `DEDENT`, conceito ausente em linguagens delimitadas por chaves e pouco explorado nas ferramentas existentes. |
+| Validação | Os módulos nativos `tokenize` e `ast` servem de referência para conferir os resultados do analisador. |
 
-O aluno digita o próprio código, avança e retrocede cada passo da análise e observa o estado do autômato, a lista de tokens e o crescimento da árvore. Erros inseridos pelo aluno são destacados no ponto exato em que foram detectados.
+### Subconjunto inicial
 
----
+O projeto **não** cobre o Python inteiro. A primeira versão do analisador tratará apenas:
 
-## 2. Objetivo Geral e Justificativa Inicial
-
-O presente trabalho tem como objetivo desenvolver um software educacional web para o ensino das análises léxica e sintática, usando um subconjunto da linguagem Python, voltado a estudantes de graduação em Ciência da Computação.
-
-A justificativa baseia-se na dificuldade recorrente dos alunos em visualizar, na prática, o funcionamento das fases de um compilador. Graciano Junior et al. (2022) apontam que esse é um dos principais entraves da disciplina: livros e aulas costumam mostrar apenas a árvore final ou figuras estáticas de exemplos pequenos, sem permitir que o aluno teste o próprio código. Borela et al. (2025) reforçam que professores enfrentam escassez de recursos didáticos com recursos gráficos e interativos.
-
-Há evidências de que ferramentas visuais ajudam. No estudo de Sangal et al. (2018), 89% dos estudantes afirmaram que um visualizador de algoritmos de parsing os ajudou a compreender o conteúdo. Ainda assim, as ferramentas existentes trabalham com pseudolinguagens (Portugol), linguagens próprias inspiradas em C ou gramáticas abstratas, e nenhuma das analisadas usa Python como linguagem-fonte.
-
-Diante disso, propõe-se uma ferramenta interativa que conecte a teoria de autômatos e gramáticas a uma linguagem que o aluno já conhece e usa. Os beneficiados são:
-
-- **Alunos**, que poderão experimentar com o próprio código, inclusive provocando erros, e acompanhar cada passo da análise;
-- **Professores**, que terão um recurso gratuito para aulas expositivas, laboratórios ou sala de aula invertida;
-- **Instituições**, que ganham um material reutilizável, acessível pelo navegador e sem necessidade de instalação.
-
----
-
-## 3. Fichamento dos Artigos
-
-Os artigos foram localizados no Google Acadêmico, na SBC OpenLib (SOL) e na Springer Link, com os termos *ensino de compiladores*, *compiler teaching tool* e *parsing visualization*.
-
-### Artigo 1 — Ferramenta Interativa para o Ensino de Compiladores (2022)
-
-**Referência:** GRACIANO JUNIOR, W.; GROSSERT, I. T. S.; CASTELLO BRANCO NETO, W.; AVILA, A. J. Ferramenta Interativa para o ensino de compiladores. In: Simpósio Brasileiro de Educação em Computação (EduComp), 2., 2022, on-line. *Anais* [...]. Porto Alegre: SBC, 2022. p. 224–233. [Link](https://sol.sbc.org.br/index.php/educomp/article/view/19217)
-
-- **Objetivo:** apresentar uma aplicação web interativa para apoiar o ensino-aprendizagem das análises léxica e sintática.
-- **Metodologia:** pesquisa aplicada e qualitativa, com levantamento bibliográfico e estudo de caso. Frontend em Angular e backend em **Python**. A linguagem analisada é uma pseudolinguagem baseada em Portugol, reconhecida por um autômato finito determinístico e por um analisador sintático preditivo (FIRST, FOLLOW e tabela M).
-- **Resultados:** a ferramenta anima o autômato token a token e constrói a árvore de derivação passo a passo, com explicação textual e destaque de erros em vermelho. Cinco alunos testaram uma versão preliminar; pelo número reduzido, os resultados não foram publicados.
-- **Contribuições para o meu trabalho:** é o trabalho mais próximo da proposta. Inspira a interface em três colunas (tokens, visualização e explicação), o controle de avançar/voltar e a combinação de teoria com prática.
-- **Limitações:** não houve avaliação com alunos que tivesse resultados mensuráveis. O uso de pseudolinguagem afasta a ferramenta das linguagens reais que o aluno usa.
-
-### Artigo 2 — PAVT: a tool to visualize and teach parsing algorithms (2018)
-
-**Referência:** SANGAL, S.; KATARIA, S.; TYAGI, T. et al. PAVT: a tool to visualize and teach parsing algorithms. *Education and Information Technologies*, v. 23, p. 2737–2764, 2018. DOI: [10.1007/s10639-018-9739-x](https://doi.org/10.1007/s10639-018-9739-x)
-
-- **Objetivo:** apresentar um visualizador capaz de mostrar a construção e a execução de seis algoritmos de análise sintática: preditivo LL(1), SLR, LR canônico, LALR, Earley e CYK.
-- **Metodologia:** desenvolvimento de uma ferramenta desktop que recebe uma gramática livre de contexto e uma cadeia de entrada. A ferramenta foi usada em disciplinas de Compiladores de graduação e pós-graduação, com coleta de opinião dos estudantes.
-- **Resultados:** 89% dos estudantes disseram que a ferramenta ajudou a entender os algoritmos de parsing, e 88% a usaram para comparar algoritmos entre si.
-- **Contribuições para o meu trabalho:** oferece evidência quantitativa do benefício de visualizar a análise sintática. Mostra também quais artefatos são didaticamente úteis: conjuntos FIRST/FOLLOW, tabela de parsing, pilha, árvore e derivação.
-- **Limitações:** trabalha apenas com gramáticas abstratas e cadeias curtas, sem ligação com uma linguagem de programação real. Não aborda a análise léxica.
-
-### Artigo 3 — Uma Ferramenta Educacional de Apoio ao Ensino de Compiladores (2025)
-
-**Referência:** BORELA, E. P. S.; OLIVEIRA, A. L.; CASTELLO BRANCO NETO, W.; SOUZA, A. P. Uma Ferramenta Educacional de Apoio ao Ensino de Compiladores. In: Workshop sobre Educação em Computação (WEI), 33., 2025, Maceió. *Anais* [...]. Porto Alegre: SBC, 2025. p. 171–181. DOI: [10.5753/wei.2025.7407](https://doi.org/10.5753/wei.2025.7407)
-
-- **Objetivo:** apresentar uma ferramenta web que compila uma linguagem inspirada em C e exibe todos os artefatos da compilação.
-- **Metodologia:** compilador construído com ANTLR 4 (análises léxica e sintática) e LLVM (otimização e código-alvo), com backend Java/Spring Boot. A avaliação usou questionário on-line com escala Likert, respondido por 27 participantes (74,1% alunos e 18,5% professores).
-- **Resultados:** avaliação geral média de 4,81 em 5. A lista de tokens teve 96,3% de respostas positivas e a árvore sintática, 88,89%.
-- **Contribuições para o meu trabalho:** mostra um modelo de avaliação replicável (questionário Likert com perguntas abertas). Indica que a árvore sintática é o recurso que mais precisa de cuidado na apresentação, segundo as sugestões dos participantes.
-- **Limitações:** a árvore é mostrada pronta, sem passo a passo. A avaliação mede aceitação, não ganho de aprendizagem. Os autores reconhecem que a ferramenta exige conhecimento prévio e não substitui o ensino.
-
----
-
-## 4. Análise Comparativa (Quadro de Síntese)
-
-Nenhum dos três trabalhos combina análise léxica e sintática passo a passo com uma linguagem real conhecida pelo aluno; é nessa lacuna que a proposta se posiciona.
-
-| Critério | Graciano Junior et al. (2022) | Sangal et al. (2018) | Borela et al. (2025) | **Proposta deste trabalho** |
-| --- | --- | --- | --- | --- |
-| Plataforma | Web responsiva | Desktop | Web | Web |
-| Fases abordadas | Léxica, sintática | Sintática | Todas (até código-alvo e execução) | Léxica, sintática |
-| Recursos visuais | Autômato animado, árvore de derivação passo a passo | Tabelas FIRST/FOLLOW, tabela de parsing, pilha, árvore, derivação | Lista de tokens, árvore sintática, tabela de símbolos, LLVM IR, Assembly | Autômato animado, tokens com INDENT/DEDENT, árvore de derivação e AST passo a passo |
-| Passo a passo | Sim | Sim | Não | Sim |
-| Validação com alunos | Preliminar, 5 alunos, sem resultados publicados | Sim, em turmas de graduação e pós (89% aprovação) | Sim, 27 participantes (média 4,81/5) | Planejada |
-| Linguagem-alvo | Pseudolinguagem (Portugol) | Gramáticas livres de contexto abstratas | Linguagem própria inspirada em C | Subconjunto de Python |
-| Ano | 2022 | 2018 | 2025 | — |
-
-**Convergências.** Os três trabalhos partem do mesmo diagnóstico: compiladores é uma disciplina abstrata, e ver o processo acontecer facilita a compreensão. Há também uma tendência clara à plataforma web, mais acessível que o desktop, e ao uso do código digitado pelo próprio usuário.
-
-**Diferenças e lacunas.** Os trabalhos oscilam entre dois extremos. Sangal et al. (2018) aprofundam os algoritmos, mas com gramáticas abstratas; Borela et al. (2025) usam uma linguagem realista, mas sem passo a passo; Graciano Junior et al. (2022) oferecem o passo a passo, mas sobre Portugol e sem avaliação concluída. Além disso, só um dos estudos mede algo próximo de aprendizagem, e ainda por autorrelato.
-
-**Onde este trabalho se encaixa.** A proposta une o passo a passo de Graciano Junior et al. (2022) a uma linguagem real e familiar, Python, que traz o desafio léxico da indentação, ausente em todos os trabalhos analisados. Para a avaliação, pretende-se adotar um questionário Likert semelhante ao de Borela et al. (2025), complementado por um pré-teste e pós-teste de conteúdo, para medir também o ganho de aprendizagem.
-
----
-
-## 5. Anexos
-
-Os artigos de acesso aberto ficam na pasta [`docs/`](docs/) deste repositório. O Anexo B é de acesso pago (Springer), por isso aparece apenas como link.
-
-| Anexo | Artigo | Acesso |
+| Categoria | Construções incluídas | Exemplo |
 | --- | --- | --- |
-| A | Graciano Junior et al. (2022) — [PDF](https://sol.sbc.org.br/index.php/educomp/article/download/19217/19046) | Aberto (CC BY-NC 4.0) |
-| B | Sangal et al. (2018) — [página do artigo](https://doi.org/10.1007/s10639-018-9739-x) | Portal de Periódicos CAPES / rede da instituição |
-| C | Borela et al. (2025) — [PDF](https://sol.sbc.org.br/index.php/wei/article/download/36164/35951) | Aberto |
+| Literais | Inteiros, números de ponto flutuante, strings entre aspas, `True`, `False` | `42`, `3.14`, `"oi"` |
+| Identificadores e atribuição | Nomes de variáveis e atribuição simples | `x = 10` |
+| Operadores aritméticos | `+`, `-`, `*`, `/`, `%` e parênteses | `(a + b) * 2` |
+| Operadores relacionais | `==`, `!=`, `<`, `<=`, `>`, `>=` | `x >= 0` |
+| Condicional | `if` / `elif` / `else` com blocos indentados | `if x > 0:` |
+| Repetição | `while` com bloco indentado | `while i < 10:` |
+| Saída | Chamada a `print(...)` | `print(x)` |
+| Estrutura de bloco | Tokens `NEWLINE`, `INDENT`, `DEDENT` e comentários `#` | — |
+
+**Fora do escopo inicial:** funções (`def`), `for`, listas, dicionários, classes, `import` e operadores lógicos (`and`, `or`, `not`). Esses itens poderão ser adicionados em etapas posteriores.
+
+**Por que esse recorte?** Ele contém o suficiente para exercitar todas as categorias de token (palavras-chave, identificadores, literais, operadores, delimitadores e indentação) e gerar árvores sintáticas com aninhamento real, mantendo a gramática pequena o bastante para ser visualizada passo a passo.
 
 ---
 
-## Referências
+## 2. Estrutura do repositório
 
-BORELA, E. P. S.; OLIVEIRA, A. L.; CASTELLO BRANCO NETO, W.; SOUZA, A. P. Uma Ferramenta Educacional de Apoio ao Ensino de Compiladores. In: WORKSHOP SOBRE EDUCAÇÃO EM COMPUTAÇÃO (WEI), 33., 2025, Maceió. *Anais* [...]. Porto Alegre: SBC, 2025. p. 171–181. DOI: 10.5753/wei.2025.7407.
+```
+compiladores/
+├── backend/                 # API em Python (FastAPI)
+│   ├── app/
+│   │   ├── __init__.py
+│   │   └── main.py          # endpoints /api/health e /api/hello
+│   ├── Dockerfile
+│   └── requirements.txt
+├── frontend/                # Interface web estática servida pelo Nginx
+│   ├── Dockerfile
+│   ├── index.html           # exibe a mensagem recebida do backend
+│   └── nginx.conf           # serve o HTML e repassa /api/ ao backend
+├── docs/
+│   └── revisao-literatura.md
+├── docker-compose.yml       # orquestra frontend e backend
+├── .gitignore
+└── README.md
+```
 
-GRACIANO JUNIOR, W.; GROSSERT, I. T. S.; CASTELLO BRANCO NETO, W.; AVILA, A. J. Ferramenta Interativa para o ensino de compiladores. In: SIMPÓSIO BRASILEIRO DE EDUCAÇÃO EM COMPUTAÇÃO (EDUCOMP), 2., 2022, on-line. *Anais* [...]. Porto Alegre: SBC, 2022. p. 224–233.
+Não há banco de dados nesta etapa, pois o projeto ainda não precisa guardar informações.
 
-SANGAL, S.; KATARIA, S.; TYAGI, T. et al. PAVT: a tool to visualize and teach parsing algorithms. *Education and Information Technologies*, v. 23, p. 2737–2764, 2018. DOI: 10.1007/s10639-018-9739-x.
+---
+
+## 3. Arquitetura
+
+```
+Navegador ──► frontend (Nginx, porta 8080) ──/api/──► backend (FastAPI, porta 8000)
+```
+
+- O **frontend** serve a página `index.html` e repassa toda requisição que começa com `/api/` para o backend.
+- O **backend** responde em `/api/hello` com `{"message": "Hello, World!"}`.
+- A página busca essa mensagem e a exibe. Se aparecer **Hello, World!**, os dois serviços estão no ar e se comunicando.
+- O backend só é acessível pela rede interna do Docker; apenas a porta **8080** do frontend é exposta.
+
+---
+
+## 4. Pré-requisitos
+
+| Ferramenta | Versão mínima | Como verificar |
+| --- | --- | --- |
+| Git | 2.30 | `git --version` |
+| Docker Engine (ou Docker Desktop) | 24.0 | `docker --version` |
+| Docker Compose (plugin v2) | 2.20 | `docker compose version` |
+
+A porta **8080** precisa estar livre. Não é necessário instalar Python nem Node.js na máquina: tudo roda dentro dos contêineres.
+
+> No Windows e no macOS, instale o [Docker Desktop](https://www.docker.com/products/docker-desktop/), que já inclui o Docker Compose. No Linux, instale o [Docker Engine](https://docs.docker.com/engine/install/) e o plugin `docker-compose-plugin`.
+
+---
+
+## 5. Como executar
+
+```bash
+# 1. Clonar o repositório
+git clone https://github.com/HenriqueNeuhaus/compiladores.git
+cd compiladores
+
+# 2. Construir as imagens e subir os contêineres em segundo plano
+docker compose up --build -d
+
+# 3. Conferir se os dois serviços estão rodando (backend deve aparecer como "healthy")
+docker compose ps
+```
+
+Depois, abra **http://localhost:8080** no navegador. A página deve exibir **Hello, World!**.
+
+Para testar pelo terminal:
+
+```bash
+curl http://localhost:8080/api/hello
+# {"message":"Hello, World!"}
+```
+
+A documentação automática da API fica em **http://localhost:8080/api/docs**.
+
+Comandos úteis durante o desenvolvimento:
+
+```bash
+docker compose logs -f            # acompanhar os logs dos dois serviços
+docker compose logs -f backend    # logs só do backend
+docker compose up --build -d      # reconstruir após alterar o código
+```
+
+---
+
+## 6. Como encerrar
+
+```bash
+# Parar e remover os contêineres e a rede criada pelo Compose
+docker compose down
+
+# (Opcional) remover também as imagens construídas pelo projeto
+docker compose down --rmi local
+```
+
+---
+
+## 7. Validação de instalação limpa
+
+Para garantir que o projeto não depende de nada configurado só na máquina do autor, os passos das seções 5 e 6 devem ser executados a partir de um clone novo, sem imagens nem contêineres do projeto:
+
+```bash
+# Partir do zero: apagar clones antigos e imagens do projeto
+docker compose down --rmi local 2>/dev/null
+cd .. && rm -rf compiladores
+git clone https://github.com/HenriqueNeuhaus/compiladores.git
+cd compiladores
+docker compose up --build -d
+```
+
+| Verificação | Resultado esperado | Status |
+| --- | --- | --- |
+| `docker compose up --build -d` | Imagens construídas e dois contêineres iniciados | ⬜ |
+| `docker compose ps` | `backend` com estado `healthy`, `frontend` em execução | ⬜ |
+| `curl http://localhost:8080/api/hello` | `{"message":"Hello, World!"}` | ⬜ |
+| http://localhost:8080 no navegador | Página exibe "Hello, World!" | ⬜ |
+| `docker compose down` | Contêineres e rede removidos | ⬜ |
+
+Data da validação: __/__/____ · Sistema operacional: ________ · Versão do Docker: ________
+
+---
+
+## 8. Próximas etapas
+
+- [x] Etapa 1 — linguagem, estrutura inicial, Docker e "Hello, World!"
+- [ ] Analisador léxico do subconjunto, com visualização do autômato e dos tokens `INDENT`/`DEDENT`
+- [ ] Analisador sintático com construção passo a passo da árvore de derivação e da AST
+- [ ] Explicações teóricas integradas e avaliação com estudantes
