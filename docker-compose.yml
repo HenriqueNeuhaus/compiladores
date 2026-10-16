@@ -41,7 +41,7 @@ services:
 
   testes-e2e:
     profiles: ["testes"]
-    image: mcr.microsoft.com/playwright/python:v1.56.0-noble
+    build: ./tests/e2e
     working_dir: /projeto
     volumes:
       - .:/projeto:ro

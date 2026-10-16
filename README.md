@@ -67,7 +67,7 @@ O projeto **não** cobre o Python inteiro. Os analisadores das próximas etapas 
 | Orquestração | **Docker Compose** | Serviços `frontend` e `backend`, mais o perfil `testes` |
 | Testes do backend | `unittest` (biblioteca padrão do Python) | Sem dependências extras |
 | Testes do frontend | `node --test` (Node.js 22) | Sem dependências extras |
-| Testes de interface e ponta a ponta | **Playwright 1.56** (Python) com Chromium | Imagem oficial `mcr.microsoft.com/playwright/python:v1.56.0-noble` |
+| Testes de interface e ponta a ponta | **Playwright 1.56** (Python) com Chromium | Imagem `tests/e2e/Dockerfile`, baseada na oficial `mcr.microsoft.com/playwright/python:v1.56.0-noble` |
 
 Não há banco de dados: o projeto ainda não precisa guardar informações.
 
@@ -100,7 +100,8 @@ compiladores/
 │   └── Dockerfile
 ├── tests/e2e/
 │   ├── test_interface.py      # testes de interface e ponta a ponta (Playwright)
-│   └── servidor_local.py      # frontend + backend juntos para testar sem Docker
+│   ├── servidor_local.py      # frontend + backend juntos para testar sem Docker
+│   └── Dockerfile             # imagem dos testes de interface
 ├── scripts/
 │   ├── testar.ps1             # roda todos os testes no Docker (Windows)
 │   └── testar.sh              # idem (Linux/macOS)
@@ -268,9 +269,9 @@ Os scripts sobem a aplicação com `--wait` (teste de implantação), rodam as t
 
 ```bash
 docker compose up -d --build --wait
-docker compose --profile testes run --rm testes-backend    # backend
-docker compose --profile testes run --rm testes-frontend   # frontend (unitários)
-docker compose --profile testes run --rm testes-e2e        # interface (Playwright contra o Nginx)
+docker compose --profile testes run --build --rm testes-backend    # backend
+docker compose --profile testes run --build --rm testes-frontend   # frontend (unitários)
+docker compose --profile testes run --build --rm testes-e2e        # interface (Playwright contra o Nginx)
 ```
 
 ### Rodar sem Docker
@@ -288,7 +289,8 @@ BASE_URL=http://localhost:8090 python -m unittest tests.e2e.test_interface -v
 
 | Data | Ambiente | Backend | Frontend | Interface | Implantação no Docker |
 | --- | --- | --- | --- | --- | --- |
-| 15/10/2026 | Linux, Python 3.13, Node 22, servidor local | 41 de 41 | 39 de 39 | 31 de 31 | pendente: ver [`docs/testes.md`](docs/testes.md) |
+| 15/10/2026 | Linux, Python 3.13, Node 22, servidor local | 41 de 41 | 39 de 39 | 31 de 31 | não executada nesse ambiente |
+| 15/10/2026 | Windows, Docker 29.8.2 (`scripts/testar.ps1`) | aprovado | aprovado | falhou: pacote `playwright` ausente na imagem (corrigido, aguardando nova execução) | aprovada (build + healthcheck) |
 
 O registro completo, com os comandos, as falhas encontradas e as correções, está em [`docs/testes.md`](docs/testes.md).
 

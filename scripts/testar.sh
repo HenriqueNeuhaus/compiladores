@@ -15,16 +15,16 @@ falhou=0
 executar() {
   local nome="$1"; shift
   echo; echo "=== $nome ==="
-  if "$@"; then resultados+=("OK"); else resultados+=("FALHOU (código $?)"); falhou=1; fi
+  if "$@"; then resultados+=("OK"); else resultados+=("FALHOU (codigo $?)"); falhou=1; fi
   nomes+=("$nome")
 }
 
-executar "1. Implantação (build + healthcheck)" docker compose up -d --build --wait
-executar "2. Testes do backend"                 docker compose --profile testes run --rm testes-backend
-executar "3. Testes do frontend"                docker compose --profile testes run --rm testes-frontend
-executar "4. Testes de interface (Playwright)"  docker compose --profile testes run --rm testes-e2e
+executar "1. Implantacao (build + healthcheck)" docker compose up -d --build --wait
+executar "2. Testes do backend"                 docker compose --profile testes run --build --rm testes-backend
+executar "3. Testes do frontend"                docker compose --profile testes run --build --rm testes-frontend
+executar "4. Testes de interface (Playwright)"  docker compose --profile testes run --build --rm testes-e2e
 
 echo; echo "=== Resumo ==="
 for i in "${!nomes[@]}"; do printf '%-42s %s\n' "${nomes[$i]}" "${resultados[$i]}"; done
-echo; echo "A aplicação continua no ar em http://localhost:8080 (encerre com: docker compose down)."
+echo; echo "A aplicacao continua no ar em http://localhost:8080 (encerre com: docker compose down)."
 exit $falhou

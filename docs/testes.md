@@ -40,9 +40,22 @@ Todas as suítes foram executadas juntas depois da última alteração de códig
 
 Nenhum teste foi alterado para esconder uma falha.
 
+### Execução no Docker (Windows, Docker 29.8.2)
+
+Comando: `powershell -ExecutionPolicy Bypass -File scripts\testar.ps1`
+
+| Etapa do script | Resultado |
+| --- | --- |
+| 1. Implantação (`docker compose up -d --build --wait`) | Aprovada: imagens construídas, backend e frontend saudáveis |
+| 2. Testes do backend no contêiner | Aprovados |
+| 3. Testes do frontend no contêiner | Aprovados |
+| 4. Testes de interface no contêiner | Falharam antes de executar: `ModuleNotFoundError: No module named 'playwright'` |
+
+**Causa:** a imagem oficial `mcr.microsoft.com/playwright/python` traz o Python e os navegadores, mas não o pacote `playwright` do Python. **Correção:** criada a imagem `tests/e2e/Dockerfile`, que parte da oficial e instala `playwright==1.56.0`. Também foi incluído `--build` nos comandos `docker compose run`, para que os testes sempre usem o código atual, e as mensagens do script passaram a ser exibidas sem acentos, que apareciam embaralhados no PowerShell ISE.
+
 ### Pendências
 
-- **Implantação no Docker:** o build das imagens, o healthcheck dos dois serviços e as três suítes dentro de contêineres (`scripts/testar.ps1`) ainda precisam ser executados em uma máquina com acesso ao Docker Hub. O ambiente de desenvolvimento bloqueava o download das imagens base. O resultado será registrado aqui.
+- **Testes de interface no Docker:** executar novamente `scripts/testar.ps1` depois da correção acima e registrar o resultado.
 - Testes de interface em outros navegadores (Firefox e WebKit).
 
 ## Etapa 1 — Estrutura inicial e Docker (15/10/2026)

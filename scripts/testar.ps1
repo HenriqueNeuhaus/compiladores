@@ -15,13 +15,13 @@ function Executar($nome, [scriptblock]$bloco) {
     Write-Host "=== $nome ===" -ForegroundColor Cyan
     & $bloco
     $ok = ($LASTEXITCODE -eq 0)
-    $resultados[$nome] = $(if ($ok) { "OK" } else { "FALHOU (código $LASTEXITCODE)" })
+    $resultados[$nome] = $(if ($ok) { "OK" } else { "FALHOU (codigo $LASTEXITCODE)" })
 }
 
-Executar "1. Implantação (build + healthcheck)" { docker compose up -d --build --wait }
-Executar "2. Testes do backend"                 { docker compose --profile testes run --rm testes-backend }
-Executar "3. Testes do frontend"                { docker compose --profile testes run --rm testes-frontend }
-Executar "4. Testes de interface (Playwright)"  { docker compose --profile testes run --rm testes-e2e }
+Executar "1. Implantacao (build + healthcheck)" { docker compose up -d --build --wait }
+Executar "2. Testes do backend"                 { docker compose --profile testes run --build --rm testes-backend }
+Executar "3. Testes do frontend"                { docker compose --profile testes run --build --rm testes-frontend }
+Executar "4. Testes de interface (Playwright)"  { docker compose --profile testes run --build --rm testes-e2e }
 
 Write-Host ""
 Write-Host "=== Resumo ===" -ForegroundColor Cyan
@@ -31,5 +31,5 @@ foreach ($item in $resultados.GetEnumerator()) {
     Write-Host ("{0,-42} {1}" -f $item.Key, $item.Value) -ForegroundColor $cor
 }
 Write-Host ""
-Write-Host "A aplicação continua no ar em http://localhost:8080 (encerre com: docker compose down)."
+Write-Host "A aplicacao continua no ar em http://localhost:8080 (encerre com: docker compose down)."
 if ($falhou) { exit 1 } else { exit 0 }
