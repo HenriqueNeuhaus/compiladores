@@ -64,7 +64,7 @@ Comando: `powershell -ExecutionPolicy Bypass -File scripts\testar.ps1`
 | 3. Testes do frontend | Aprovados |
 | 4. Testes de interface (Playwright contra o Nginx) | 31 aprovados, 0 reprovados, em 22,5 s |
 
-Evidência: [`validacao/04-etapa2-testes-docker.png`](validacao/04-etapa2-testes-docker.png). Com isso, todas as suítes passaram tanto no ambiente local quanto nos contêineres.
+Evidências: [`validacao/04-etapa2-testes-docker.png`](validacao/04-etapa2-testes-docker.png) (testes) e [`validacao/05-etapa2-interface-docker.png`](validacao/05-etapa2-interface-docker.png) (interface em http://localhost:8080 recebendo um programa). Com isso, todas as suítes passaram tanto no ambiente local quanto nos contêineres.
 
 ### Pendências
 
