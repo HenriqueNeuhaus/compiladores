@@ -290,7 +290,10 @@ BASE_URL=http://localhost:8090 python -m unittest tests.e2e.test_interface -v
 | Data | Ambiente | Backend | Frontend | Interface | Implantação no Docker |
 | --- | --- | --- | --- | --- | --- |
 | 15/10/2026 | Linux, Python 3.13, Node 22, servidor local | 41 de 41 | 39 de 39 | 31 de 31 | não executada nesse ambiente |
-| 15/10/2026 | Windows, Docker 29.8.2 (`scripts/testar.ps1`) | aprovado | aprovado | falhou: pacote `playwright` ausente na imagem (corrigido, aguardando nova execução) | aprovada (build + healthcheck) |
+| 15/10/2026 | Windows, Docker 29.8.2 (`scripts/testar.ps1`), 1ª execução | aprovado | aprovado | falhou: pacote `playwright` ausente na imagem (corrigido) | aprovada |
+| 15/10/2026 | Windows, Docker 29.8.2 (`scripts/testar.ps1`), após a correção | aprovado | aprovado | 31 de 31 | aprovada (build + healthcheck) |
+
+Evidência da execução no Docker: [`docs/validacao/04-etapa2-testes-docker.png`](docs/validacao/04-etapa2-testes-docker.png).
 
 O registro completo, com os comandos, as falhas encontradas e as correções, está em [`docs/testes.md`](docs/testes.md).
 

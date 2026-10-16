@@ -53,9 +53,21 @@ Comando: `powershell -ExecutionPolicy Bypass -File scripts\testar.ps1`
 
 **Causa:** a imagem oficial `mcr.microsoft.com/playwright/python` traz o Python e os navegadores, mas não o pacote `playwright` do Python. **Correção:** criada a imagem `tests/e2e/Dockerfile`, que parte da oficial e instala `playwright==1.56.0`. Também foi incluído `--build` nos comandos `docker compose run`, para que os testes sempre usem o código atual, e as mensagens do script passaram a ser exibidas sem acentos, que apareciam embaralhados no PowerShell ISE.
 
+### Nova execução no Docker após a correção (Windows, Docker 29.8.2)
+
+Comando: `powershell -ExecutionPolicy Bypass -File scripts\testar.ps1`
+
+| Etapa do script | Resultado |
+| --- | --- |
+| 1. Implantação (build + healthcheck) | Aprovada |
+| 2. Testes do backend | Aprovados |
+| 3. Testes do frontend | Aprovados |
+| 4. Testes de interface (Playwright contra o Nginx) | 31 aprovados, 0 reprovados, em 22,5 s |
+
+Evidência: [`validacao/04-etapa2-testes-docker.png`](validacao/04-etapa2-testes-docker.png). Com isso, todas as suítes passaram tanto no ambiente local quanto nos contêineres.
+
 ### Pendências
 
-- **Testes de interface no Docker:** executar novamente `scripts/testar.ps1` depois da correção acima e registrar o resultado.
 - Testes de interface em outros navegadores (Firefox e WebKit).
 
 ## Etapa 1 — Estrutura inicial e Docker (15/10/2026)
