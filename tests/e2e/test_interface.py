@@ -92,11 +92,16 @@ class TestTelaPrincipal(BaseInterface):
 
     def test_estado_inicial_do_resultado(self):
         expect(self.resultado).to_have_attribute("data-estado", "vazio")
-        expect(self.resultado).to_contain_text("Escreva um programa ou escolha um exemplo")
+        # Etapa 3: o estado vazio virou um pequeno tutorial "Como usar".
+        expect(self.resultado).to_contain_text("Como usar")
+        expect(self.resultado.locator(".como-usar li")).to_have_count(4)
+        expect(self.pagina.locator("#analise-lexica")).to_be_hidden()
 
-    def test_fases_futuras_indicadas_como_em_breve(self):
-        expect(self.pagina.locator(".fase.atual")).to_contain_text("Código-fonte")
-        expect(self.pagina.locator(".fase").nth(1)).to_contain_text("em breve")
+    def test_fase_de_tokens_disponivel_e_arvore_em_breve(self):
+        # Etapa 3: a fase atual passou de "Código-fonte" para "Tokens".
+        expect(self.pagina.locator(".fase.atual")).to_contain_text("Tokens")
+        expect(self.pagina.locator(".fase.atual")).to_contain_text("disponível")
+        expect(self.pagina.locator(".fase").nth(2)).to_contain_text("em breve")
 
     def test_sem_rolagem_horizontal_em_tela_de_celular(self):
         self.pagina.set_viewport_size({"width": 360, "height": 780})
@@ -128,7 +133,7 @@ class TestEdicaoDoCodigo(BaseInterface):
 
     def test_limpar_esvazia_o_editor_e_o_resultado(self):
         self.preencher("x = 1")
-        self.analisar_e_esperar("sucesso")
+        self.analisar_e_esperar("lexico_ok")
         self.pagina.locator("#limpar").click()
         expect(self.codigo).to_have_value("")
         expect(self.codigo).to_be_focused()
@@ -171,13 +176,16 @@ class TestExemplos(BaseInterface):
             self.botao.click()
         enviado = json.loads(info.value.post_data)["codigo"]
         self.assertEqual(enviado, exemplo["codigo"] + "total = 1\n")
-        expect(self.resultado).to_have_attribute("data-estado", "sucesso")
+        expect(self.resultado).to_have_attribute("data-estado", "lexico_ok")
 
-    def test_cada_exemplo_e_aceito_pelo_backend(self):
+    def test_cada_exemplo_tem_o_resultado_lexico_esperado(self):
+        # Só o exemplo "erros-lexicos" deve ter erros léxicos; o de erro
+        # sintático é formado apenas por tokens válidos.
         for exemplo in self.exemplos():
             with self.subTest(exemplo=exemplo["id"]):
                 self.pagina.select_option("#exemplo", exemplo["id"])
-                self.analisar_e_esperar("sucesso")
+                esperado = "lexico_erros" if exemplo["id"] == "erros-lexicos" else "lexico_ok"
+                self.analisar_e_esperar(esperado)
 
 
 class TestEnvioEComunicacao(BaseInterface):
@@ -186,10 +194,10 @@ class TestEnvioEComunicacao(BaseInterface):
         with self.pagina.expect_response("**/api/analisar") as info:
             self.botao.click()
         self.assertEqual(info.value.status, 200)
-        expect(self.resultado).to_have_attribute("data-estado", "sucesso")
-        expect(self.mensagem).to_contain_text("Código recebido com sucesso")
-        expect(self.resultado).to_contain_text("Linhas recebidas")
-        expect(self.resultado.locator("dd").first).to_have_text("2")
+        expect(self.resultado).to_have_attribute("data-estado", "lexico_ok")
+        # Etapa 3: a mensagem e os detalhes passaram a ser os da análise léxica.
+        expect(self.mensagem).to_have_text("Análise léxica concluída sem erros: 10 tokens reconhecidos.")
+        expect(self.pagina.locator("#total-tokens")).to_have_text("10")
         expect(self.codigo).to_have_value("x = 10\nprint(x)")  # código preservado
 
     def test_requisicao_segue_o_contrato_json(self):
@@ -207,12 +215,12 @@ class TestEnvioEComunicacao(BaseInterface):
         with self.pagina.expect_request("**/api/analisar") as info:
             self.botao.click()
         self.assertEqual(json.loads(info.value.post_data)["codigo"], codigo)
-        expect(self.resultado).to_have_attribute("data-estado", "sucesso")
+        expect(self.resultado).to_have_attribute("data-estado", "lexico_ok")
         self.assertEqual(self.pagina.locator("#resultado b, #resultado script").count(), 0)
 
-    def test_codigo_com_erro_sintatico_e_aceito_nesta_etapa(self):
+    def test_codigo_com_erro_sintatico_nao_tem_erro_lexico(self):
         self.preencher('if x > 5\n    print("x")')
-        self.analisar_e_esperar("sucesso")
+        self.analisar_e_esperar("lexico_ok")
 
     def test_botao_fica_desabilitado_durante_o_envio(self):
         def atrasar(rota):
@@ -223,8 +231,8 @@ class TestEnvioEComunicacao(BaseInterface):
         self.preencher("x = 1")
         self.botao.click()
         expect(self.botao).to_be_disabled()
-        expect(self.botao).to_have_text("Enviando…")
-        expect(self.resultado).to_have_attribute("data-estado", "sucesso")
+        expect(self.botao).to_have_text("Analisando…")
+        expect(self.resultado).to_have_attribute("data-estado", "lexico_ok")
         expect(self.botao).to_be_enabled()
         expect(self.botao).to_have_text("Analisar código")
 
@@ -283,7 +291,180 @@ class TestValidacoesEMensagens(BaseInterface):
     def test_depois_de_um_erro_um_novo_envio_funciona(self):
         self.analisar_e_esperar("entrada")
         self.preencher("x = 1")
-        self.analisar_e_esperar("sucesso")
+        self.analisar_e_esperar("lexico_ok")
+
+
+PROGRAMA_BLOCO = "x = 1\nif x >= 1:\n    print(x)\n"
+
+
+class TestTabelaDeTokens(BaseInterface):
+    def test_tabela_tem_colunas_e_uma_linha_por_token(self):
+        self.preencher(PROGRAMA_BLOCO)
+        self.analisar_e_esperar("lexico_ok")
+        cabecalho = self.pagina.locator("#tabela-tokens th")
+        expect(cabecalho).to_have_text(["#", "Tipo", "Lexema", "Linha", "Coluna"])
+        linhas = self.pagina.locator("#tabela-tokens tbody tr")
+        # x = 1 ↵ if x >= 1 : ↵ INDENT print ( x ) ↵ DEDENT FIM
+        expect(linhas).to_have_count(18)
+        expect(linhas.nth(4).locator("td")).to_have_text(["5", "PALAVRA_RESERVADA", "if", "2", "1"])
+        expect(linhas.nth(10).locator("td")).to_have_text(["11", "INDENT", "4 espaços", "3", "1"])
+        expect(linhas.nth(17).locator("td")).to_have_text(["18", "FIM_DE_ARQUIVO", "(fim)", "4", "1"])
+
+    def test_contagem_por_categoria(self):
+        self.preencher(PROGRAMA_BLOCO)
+        self.analisar_e_esperar("lexico_ok")
+        chip = self.pagina.locator('#contagem [data-tipo="IDENTIFICADOR"]')
+        expect(chip).to_contain_text("Identificador")
+        expect(chip.locator(".chip-qtd")).to_have_text("4")
+
+    def test_lexema_com_html_e_exibido_como_texto(self):
+        self.preencher('s = "<img src=x onerror=alert(1)>"')
+        self.analisar_e_esperar("lexico_ok")
+        expect(self.pagina.locator("#tabela-tokens tbody")).to_contain_text("<img src=x onerror=alert(1)>")
+        self.assertEqual(self.pagina.locator("#analise-lexica img").count(), 0)
+
+
+class TestCodigoDestacado(BaseInterface):
+    def test_cada_categoria_recebe_sua_cor(self):
+        self.preencher('if nota >= 7:\n    print("ok")  # fim\n')
+        self.analisar_e_esperar("lexico_ok")
+        area = self.pagina.locator("#codigo-destacado")
+        for texto, classe in [("if", "cat-palavra"), ("nota", "cat-identificador"), (">=", "cat-operador"),
+                              ("7", "cat-numero"), ('"ok"', "cat-string"), ("# fim", "cat-comentario")]:
+            with self.subTest(texto=texto):
+                expect(area.locator(f".{classe}", has_text=texto).first).to_be_visible()
+        expect(area.locator(".marcador-nova-linha")).to_have_count(2)
+        expect(area.locator(".marcador-dedent")).to_have_count(1)
+        cores = {area.locator(f".{c}").first.evaluate("e => getComputedStyle(e).backgroundColor")
+                 for c in ("cat-palavra", "cat-identificador", "cat-numero", "cat-string")}
+        self.assertEqual(len(cores), 4, "categorias diferentes devem ter cores diferentes")
+
+    def test_texto_do_codigo_destacado_e_igual_ao_do_editor(self):
+        self.preencher(PROGRAMA_BLOCO)
+        self.analisar_e_esperar("lexico_ok")
+        linhas = self.pagina.locator("#codigo-destacado .linha-codigo:not(.linha-fim) .conteudo")
+        textos = linhas.evaluate_all(
+            "ls => ls.map(l => [...l.children].filter(s => !s.classList.contains('marcador'))"
+            ".map(s => s.textContent).join(''))")
+        self.assertEqual(textos, PROGRAMA_BLOCO.split("\n"))
+
+
+class TestErrosLexicosNaInterface(BaseInterface):
+    def test_varios_erros_sao_listados_com_linha_e_coluna(self):
+        self.preencher('a = 1 $ 2\nb = "aberta\nc = a // 2\n')
+        self.analisar_e_esperar("lexico_erros")
+        expect(self.pagina.locator("#resultado-titulo")).to_have_text("Erros léxicos encontrados")
+        expect(self.mensagem).to_contain_text("3 erros léxicos encontrados")
+        itens = self.pagina.locator("#lista-erros li p")
+        expect(itens).to_have_count(3)
+        expect(itens.nth(0)).to_have_text(
+            "Erro léxico na linha 1, coluna 7: caractere não reconhecido '$'. "
+            "Verifique se ele faz parte do subconjunto suportado.")
+        expect(itens.nth(1)).to_contain_text("linha 2, coluna 5")
+        expect(itens.nth(2)).to_contain_text("'//'")
+        # Os trechos válidos continuam na tabela (o scanner não para no primeiro erro).
+        expect(self.pagina.locator("#tabela-tokens tbody")).to_contain_text("IDENTIFICADOR")
+        expect(self.pagina.locator("#codigo-destacado .cat-erro")).to_have_count(3)
+        self.assertNotIn("Traceback", self.resultado.inner_text())
+
+    def test_mostrar_no_codigo_seleciona_o_trecho_no_editor(self):
+        self.preencher("x = 1\ny = 2 $ 3\n")
+        self.analisar_e_esperar("lexico_erros")
+        self.pagina.locator("#lista-erros button").click()
+        expect(self.codigo).to_be_focused()
+        selecao = self.codigo.evaluate("e => e.value.slice(e.selectionStart, e.selectionEnd)")
+        self.assertEqual(selecao, "$")
+        expect(self.pagina.locator("#passo-descricao")).to_contain_text("'$'")
+
+    def test_palavra_fora_do_subconjunto_gera_aviso(self):
+        self.preencher("for x:\n    y = 1\n")
+        self.analisar_e_esperar("lexico_ok")
+        expect(self.pagina.locator("#lista-avisos li")).to_have_count(1)
+        expect(self.pagina.locator("#lista-avisos")).to_contain_text("for")
+
+
+class TestPassoAPasso(BaseInterface):
+    def setUp(self):
+        super().setUp()
+        self.preencher(PROGRAMA_BLOCO)
+        self.analisar_e_esperar("lexico_ok")
+        self.contador = self.pagina.locator("#passo-contador")
+        self.descricao = self.pagina.locator("#passo-descricao")
+
+    def test_comeca_no_ultimo_passo_e_navega_pelos_botoes(self):
+        total = self.pagina.locator("#passo-barra").get_attribute("max")
+        expect(self.contador).to_have_text(f"Passo {int(total) + 1} de {int(total) + 1}")
+        expect(self.pagina.locator("#passo-proximo")).to_be_disabled()
+        self.pagina.locator("#passo-inicio").click()
+        expect(self.contador).to_contain_text("Passo 1 de")
+        expect(self.descricao).to_contain_text("'x'")
+        expect(self.descricao).to_contain_text("IDENTIFICADOR")
+        expect(self.pagina.locator("#passo-anterior")).to_be_disabled()
+        self.pagina.locator("#passo-proximo").click()
+        expect(self.contador).to_contain_text("Passo 2 de")
+        expect(self.descricao).to_contain_text("'='")
+
+    def test_tokens_futuros_ficam_esmaecidos_e_o_atual_destacado(self):
+        self.pagina.locator("#passo-inicio").click()
+        atual = self.pagina.locator("#codigo-destacado .seg.atual")
+        expect(atual).to_have_count(1)
+        expect(atual).to_have_text("x")
+        self.assertGreater(self.pagina.locator("#codigo-destacado .seg.futuro").count(), 10)
+        expect(self.pagina.locator("#tabela-tokens tr.atual td").nth(2)).to_have_text("x")
+
+    def test_pilha_de_indentacao_acompanha_os_blocos(self):
+        self.pagina.locator('#tabela-tokens tbody tr:nth-child(11) button').click()  # INDENT
+        expect(self.pagina.locator("#pilha li")).to_have_text(["0", "4"])
+        expect(self.descricao).to_contain_text("INDENT")
+        self.pagina.locator("#passo-fim").click()
+        expect(self.pagina.locator("#pilha li")).to_have_text(["0"])
+
+    def test_clicar_em_um_token_do_codigo_vai_ao_passo(self):
+        self.pagina.locator("#codigo-destacado .cat-palavra", has_text="if").click()
+        expect(self.descricao).to_contain_text("'if'")
+        expect(self.descricao).to_contain_text("PALAVRA_RESERVADA")
+
+    def test_teclado_e_reproducao_automatica(self):
+        self.pagina.locator("#passo-inicio").click()
+        self.pagina.locator("#passo-reproduzir").focus()
+        self.pagina.keyboard.press("ArrowRight")
+        expect(self.contador).to_contain_text("Passo 2 de")
+        self.pagina.locator("#passo-reproduzir").click()
+        expect(self.pagina.locator("#passo-reproduzir")).to_have_attribute("aria-pressed", "true")
+        expect(self.contador).to_contain_text("Passo 4 de", timeout=5000)
+        self.pagina.locator("#passo-reproduzir").click()
+        expect(self.pagina.locator("#passo-reproduzir")).to_have_text("Reproduzir")
+
+    def test_editar_o_codigo_avisa_que_a_analise_esta_desatualizada(self):
+        expect(self.pagina.locator("#aviso-desatualizado")).to_be_hidden()
+        self.codigo.press("End")
+        self.pagina.keyboard.type(" ")
+        expect(self.pagina.locator("#aviso-desatualizado")).to_be_visible()
+        self.analisar_e_esperar("lexico_ok")
+        expect(self.pagina.locator("#aviso-desatualizado")).to_be_hidden()
+
+    def test_limpar_esconde_a_analise(self):
+        self.pagina.locator("#limpar").click()
+        expect(self.pagina.locator("#analise-lexica")).to_be_hidden()
+
+
+class TestCelular(BaseInterface):
+    def test_analise_completa_sem_rolagem_horizontal_e_com_toque(self):
+        contexto = _navegador.new_context(viewport={"width": 390, "height": 844}, has_touch=True, is_mobile=True)
+        pagina = contexto.new_page()
+        try:
+            pagina.goto(BASE_URL + "/")
+            pagina.select_option("#exemplo", "erros-lexicos")
+            pagina.locator("#analisar").tap()
+            expect(pagina.locator("#resultado")).to_have_attribute("data-estado", "lexico_erros")
+            self.assertLessEqual(pagina.evaluate("document.documentElement.scrollWidth"), 390)
+            pagina.locator("#passo-inicio").tap()
+            expect(pagina.locator("#passo-contador")).to_contain_text("Passo 1 de")
+            for seletor in ("#passo-inicio", "#passo-anterior", "#passo-proximo", "#passo-fim"):
+                caixa = pagina.locator(seletor).bounding_box()
+                self.assertGreaterEqual(caixa["height"], 40, f"{seletor} pequeno demais para toque")
+        finally:
+            contexto.close()
 
 
 class TestApiPeloMesmoEndereco(unittest.TestCase):

@@ -19,13 +19,13 @@
     </div>
 
     <ol class="caminho" aria-label="Fases do compilador neste software">
-      <li class="fase atual" aria-current="step">
+      <li class="fase feita">
         <span class="fase-nome">Código-fonte</span>
         <span class="fase-estado">disponível</span>
       </li>
-      <li class="fase">
+      <li class="fase atual" aria-current="step">
         <span class="fase-nome">Tokens</span>
-        <span class="fase-estado">em breve</span>
+        <span class="fase-estado">disponível</span>
       </li>
       <li class="fase">
         <span class="fase-nome">Árvore sintática</span>
@@ -70,10 +70,66 @@
       </div>
       <div class="resultado" id="resultado" role="status" aria-live="polite" data-estado="vazio"></div>
 
-      <div class="escopo">
-        <h3>O que o subconjunto vai incluir</h3>
-        <p>Atribuições, números, textos, operadores aritméticos e relacionais, <code>if</code>/<code>elif</code>/<code>else</code>, <code>while</code>, <code>print</code> e blocos por indentação.</p>
-        <p>Nesta versão o servidor recebe e valida o código. A separação em tokens e a árvore sintática chegam nas próximas etapas.</p>
+      <details class="escopo" id="explicacao">
+        <summary>O que é um token e um lexema?</summary>
+        <p>O <strong>scanner</strong> (analisador léxico) é a primeira fase do compilador. Ele lê o código caractere a caractere e agrupa os caracteres em <strong>lexemas</strong>, como <code>while</code>, <code>contador</code> ou <code>&lt;=</code>.</p>
+        <p>Cada lexema recebe uma categoria e vira um <strong>token</strong>: <code>while</code> é PALAVRA_RESERVADA, <code>contador</code> é IDENTIFICADOR e <code>&lt;=</code> é OPERADOR_RELACIONAL. Espaços e comentários são lidos, mas descartados.</p>
+        <p>Em Python a indentação define os blocos, por isso o scanner também produz tokens sem texto: NOVA_LINHA no fim de cada instrução, INDENT quando um bloco começa e DEDENT quando ele termina.</p>
+        <p>Subconjunto aceito: atribuições, números inteiros e reais, strings, <code>+ - * / %</code>, <code>== != &lt; &lt;= &gt; &gt;=</code>, <code>if</code>/<code>elif</code>/<code>else</code>, <code>while</code>, <code>True</code>/<code>False</code>, <code>print</code> e blocos por indentação. A árvore sintática chega na Etapa 4.</p>
+      </details>
+    </section>
+
+    <section class="painel painel-analise" id="analise-lexica" aria-labelledby="titulo-analise" hidden>
+      <div class="painel-topo">
+        <h2 id="titulo-analise">Análise léxica passo a passo</h2>
+        <p class="aviso-desatualizado" id="aviso-desatualizado" hidden>O código mudou depois da análise. Clique em Analisar código para atualizar.</p>
+      </div>
+
+      <div class="reprodutor" id="reprodutor" role="group" aria-label="Controles do passo a passo">
+        <div class="controles">
+          <button type="button" class="botao-passo" id="passo-inicio" aria-label="Primeiro passo">⏮</button>
+          <button type="button" class="botao-passo" id="passo-anterior" aria-label="Passo anterior">◀</button>
+          <button type="button" class="botao-principal" id="passo-reproduzir" aria-pressed="false">Reproduzir</button>
+          <button type="button" class="botao-passo" id="passo-proximo" aria-label="Próximo passo">▶</button>
+          <button type="button" class="botao-passo" id="passo-fim" aria-label="Último passo">⏭</button>
+          <span class="passo-contador" id="passo-contador">Passo 1 de 1</span>
+        </div>
+        <input type="range" id="passo-barra" min="0" max="0" value="0" aria-label="Escolher o passo">
+        <p class="passo-descricao" id="passo-descricao" aria-live="polite"></p>
+        <div class="pilha-area">
+          <span class="pilha-rotulo" id="pilha-rotulo">Pilha de indentação</span>
+          <ol class="pilha" id="pilha" aria-labelledby="pilha-rotulo"></ol>
+        </div>
+      </div>
+
+      <div class="analise-grade">
+        <div class="bloco-destacado">
+          <h3>Código por categoria</h3>
+          <div class="codigo-destacado" id="codigo-destacado" aria-label="Código com os tokens coloridos por categoria"></div>
+          <ul class="legenda" aria-label="Legenda das cores">
+            <li><span class="seg cat-palavra">if</span> palavra reservada</li>
+            <li><span class="seg cat-identificador">nome</span> identificador</li>
+            <li><span class="seg cat-numero">10</span> número</li>
+            <li><span class="seg cat-string">"txt"</span> string</li>
+            <li><span class="seg cat-operador">+</span> operador</li>
+            <li><span class="seg cat-delimitador">(</span> delimitador</li>
+            <li><span class="seg cat-indent">····</span> INDENT</li>
+            <li><span class="seg marcador cat-estrutura">↵</span> NOVA_LINHA / <span class="seg marcador cat-estrutura">⇤</span> DEDENT</li>
+            <li><span class="seg cat-comentario"># c</span> comentário (ignorado)</li>
+            <li><span class="seg cat-erro">$</span> erro léxico</li>
+          </ul>
+        </div>
+        <div class="bloco-tabela">
+          <h3>Tokens (<span id="total-tokens">0</span>)</h3>
+          <div class="tabela-rolagem" id="tabela-rolagem" tabindex="0" aria-label="Tabela de tokens com rolagem">
+            <table id="tabela-tokens">
+              <thead>
+                <tr><th scope="col">#</th><th scope="col">Tipo</th><th scope="col">Lexema</th><th scope="col">Linha</th><th scope="col">Coluna</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
   </main>

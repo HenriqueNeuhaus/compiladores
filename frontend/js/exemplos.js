@@ -51,12 +51,28 @@ export const EXEMPLOS = [
   },
   {
     id: "erro-sintatico",
-    titulo: "Programa com erro intencional",
-    construcoes: "if sem os dois-pontos no fim da linha: será usado para demonstrar a detecção de erros sintáticos",
+    titulo: "Erro sintático (tokens válidos)",
+    construcoes:
+      "if sem os dois-pontos no fim da linha. Todos os tokens são válidos, então a análise léxica não acusa erro; o problema será detectado pela análise sintática (Etapa 4)",
     codigo: [
       "x = 10",
       "if x > 5",
       '    print("x é maior que 5")',
+      "",
+    ].join("\n"),
+  },
+  {
+    id: "erros-lexicos",
+    titulo: "Erros léxicos",
+    construcoes:
+      "identificador com acento, caractere não reconhecido ($), string sem fechar e operador de Python fora do subconjunto (//). O scanner continua depois de cada erro",
+    codigo: [
+      "# Programa com erros léxicos",
+      "preço = 10",
+      "total = preço * 2 $ 1",
+      'mensagem = "sem fechar',
+      "if total >= 20:",
+      "    print(total // 2)",
       "",
     ].join("\n"),
   },
