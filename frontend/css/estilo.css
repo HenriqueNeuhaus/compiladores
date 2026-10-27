@@ -27,6 +27,10 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 
+/* Sem ligaduras: a JetBrains Mono desenha ">=" como "≥" e "!=" como "≠", o que
+   esconde do estudante que o lexema tem dois caracteres. */
+* { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+
 html { color-scheme: light; }
 
 body {

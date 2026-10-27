@@ -325,7 +325,7 @@ Os testes cresceram junto com cada funcionalidade e cobrem cinco níveis:
 | Unitário (backend) | Regras de validação e estatísticas | `unittest` | `backend/tests/test_validacao.py` | 20 |
 | Endpoints (backend) | Contrato JSON com tokens e erros, erro léxico com 200 e `sucesso: false`, códigos HTTP, entrada vazia sem executar o scanner, falha do scanner como 500 genérico, regressão das Etapas 1 e 2 | `unittest` | `backend/tests/test_api.py` | 29 |
 | Unitário (frontend) | Validação, exemplos, cliente da API e preparação dos tokens para exibição (cores, lexemas visíveis, contagem, segmentação do código) | `node --test` | `frontend/tests/unit/*.test.js` | 53 |
-| Interface e ponta a ponta | Tela, edição, exemplos, envio, mensagens, tabela de tokens, código colorido, erros léxicos, "Mostrar no código", passo a passo (botões, teclado, reprodução, pilha), aviso de código alterado, celular com toque e regressão das etapas anteriores | Playwright | `tests/e2e/test_interface.py` | 47 |
+| Interface e ponta a ponta | Tela, edição, exemplos, envio, mensagens, tabela de tokens, código colorido, erros léxicos, "Mostrar no código", passo a passo (botões, teclado, reprodução, pilha), aviso de código alterado, celular com toque e regressão das etapas anteriores | Playwright | `tests/e2e/test_interface.py` | 48 |
 | Implantação | Build das imagens e healthcheck dos dois serviços | Docker Compose (`--wait`) | `docker-compose.yml` | — |
 
 ### Rodar tudo no Docker (recomendado)
@@ -367,10 +367,10 @@ BASE_URL=http://localhost:8090 python -m unittest tests.e2e.test_interface -v
 | 15/10/2026 | Linux, Python 3.13, Node 22, servidor local | 41 de 41 | 39 de 39 | 31 de 31 | não executada nesse ambiente |
 | 15/10/2026 | Windows, Docker 29.8.2 (`scripts/testar.ps1`), 1ª execução | aprovado | aprovado | falhou: pacote `playwright` ausente na imagem (corrigido) | aprovada |
 | 15/10/2026 | Windows, Docker 29.8.2 (`scripts/testar.ps1`), após a correção | aprovado | aprovado | 31 de 31 | aprovada (build + healthcheck) |
-| 27/10/2026 | Etapa 3 — Linux, Python 3.13, Node 22, servidor local | 107 de 107 | 53 de 53 | 47 de 47 | não executada nesse ambiente |
+| 27/10/2026 | Etapa 3 — Linux, Python 3.13, Node 22, servidor local | 107 de 107 | 53 de 53 | 48 de 48 (após corrigir as ligaduras) | não executada nesse ambiente |
 | 27/10/2026 | Etapa 3 — Windows, Docker 29.8.2 (`scripts/testar.ps1`) | aprovado | aprovado | 47 de 47 | aprovada (build + healthcheck) |
 
-Evidências da execução no Docker — Etapa 2: [testes](docs/validacao/04-etapa2-testes-docker.png) e [interface](docs/validacao/05-etapa2-interface-docker.png); Etapa 3: [testes](docs/validacao/06-etapa3-testes-docker.png) e [interface](docs/validacao/07-etapa3-interface-docker.png).
+Evidências da execução no Docker — Etapa 2: [testes](docs/validacao/04-etapa2-testes-docker.png) e [interface](docs/validacao/05-etapa2-interface-docker.png); Etapa 3: [testes](docs/validacao/06-etapa3-testes-docker.png), [interface](docs/validacao/07-etapa3-interface-docker.png), [erros léxicos](docs/validacao/08-etapa3-erros-lexicos-docker.png) e [passo a passo](docs/validacao/09-etapa3-passo-a-passo-docker.png).
 
 O registro completo, com os comandos, as falhas encontradas e as correções, está em [`docs/testes.md`](docs/testes.md).
 

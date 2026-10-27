@@ -342,6 +342,19 @@ class TestCodigoDestacado(BaseInterface):
                  for c in ("cat-palavra", "cat-identificador", "cat-numero", "cat-string")}
         self.assertEqual(len(cores), 4, "categorias diferentes devem ter cores diferentes")
 
+    def test_operadores_compostos_sem_ligaduras(self):
+        # Regressão (validação no Docker): com a fonte JetBrains Mono carregada,
+        # ">=" aparecia como um único símbolo "≥" no editor, no código e na tabela.
+        self.preencher("x >= 1 != 2\n")
+        self.analisar_e_esperar("lexico_ok")
+        for seletor in ("#codigo", "#codigo-destacado .cat-operador", "#tabela-tokens .lexema code",
+                        "#explicacao code"):
+            with self.subTest(seletor=seletor):
+                estilo = self.pagina.locator(seletor).first.evaluate(
+                    "e => [getComputedStyle(e).fontVariantLigatures, getComputedStyle(e).fontFeatureSettings]")
+                self.assertEqual(estilo[0], "none")
+                self.assertIn('"calt" 0', estilo[1])
+
     def test_texto_do_codigo_destacado_e_igual_ao_do_editor(self):
         self.preencher(PROGRAMA_BLOCO)
         self.analisar_e_esperar("lexico_ok")

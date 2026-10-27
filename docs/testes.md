@@ -14,7 +14,7 @@ Registro das execuções de teste do projeto, em ordem cronológica. Cada etapa 
 | 2 | Scanner comparado ao `tokenize` do Python (categoria, texto, linha e coluna) nos exemplos da interface, em programas de referência e em 300 programas aleatórios | Oráculo (diferencial) | incluído no comando anterior (`TestComparacaoComTokenizeDoPython`) | Aprovado: nenhuma divergência |
 | 3 | `POST /api/analisar` com tokens, erros, avisos, comentários, contagem e passos; erro léxico com 200 e `sucesso: false`; entrada vazia sem chamar o scanner; falha do scanner como 500 genérico | Endpoints | `cd backend && python -m unittest tests.test_api -v` | 29 aprovados (21 da Etapa 2, alguns atualizados, + 8 novos) |
 | 4 | Preparação dos tokens para a tela (`frontend/js/lexico.js`): nomes e classes das 13 categorias, lexemas visíveis, contagem, segmentação do código, erros sobre tokens e em várias linhas, CRLF | Unitário (frontend) | `cd frontend && node --test "tests/unit/*.test.js"` | 53 aprovados (39 da Etapa 2, 3 gerados automaticamente para o novo exemplo e 11 novos de `lexico.test.js`) |
-| 5 | Tabela de tokens, código colorido, contagem, lista de erros com "Mostrar no código", avisos, passo a passo (botões, teclado, reprodução, pilha, esmaecimento, clique no token), aviso de código alterado, celular com toque | Interface e ponta a ponta | `BASE_URL=http://localhost:8090 python -m unittest tests.e2e.test_interface -v` | 47 aprovados (31 da Etapa 2, alguns atualizados, + 16 novos) |
+| 5 | Tabela de tokens, código colorido, contagem, lista de erros com "Mostrar no código", avisos, passo a passo (botões, teclado, reprodução, pilha, esmaecimento, clique no token), aviso de código alterado, celular com toque | Interface e ponta a ponta | `BASE_URL=http://localhost:8090 python -m unittest tests.e2e.test_interface -v` | 48 aprovados (31 da Etapa 2, alguns atualizados, + 17 novos) |
 | 6 | Sensibilidade do oráculo | Mutação manual | Coluna do `DEDENT` alterada de propósito em `scanner.py` | Dezenas de subtestes reprovaram; arquivo restaurado e testes aprovados de novo |
 | 7 | Sensibilidade dos testes de interface | Mutação manual | Esmaecimento dos tokens futuros desligado em `interface.js` | 1 teste do passo a passo reprovou; arquivo restaurado e testes aprovados de novo |
 | 8 | Revisão visual em 1366 px e 390 px | Capturas de tela com Playwright | `docs/interface/*.png` | Sem rolagem horizontal; problemas encontrados listados abaixo e corrigidos |
@@ -41,8 +41,8 @@ Os testes de regressão das etapas anteriores continuam passando: `/api/health`,
 | --- | --- | --- |
 | Backend (scanner + validação + endpoints) | 107 | 0 |
 | Frontend (unitário) | 53 | 0 |
-| Interface e ponta a ponta | 47 | 0 |
-| **Total** | **207** | **0** |
+| Interface e ponta a ponta | 48 | 0 |
+| **Total** | **208** | **0** |
 
 ### Falhas encontradas e correções
 
@@ -54,6 +54,7 @@ Os testes de regressão das etapas anteriores continuam passando: `/api/health`,
 | Painel da análise visível antes da primeira análise | Captura de tela | `display: flex` do painel anulava o atributo `hidden` | Regra `[hidden] { display: none !important; }` |
 | Texto "null" no fim do resultado | Captura de tela | Lista de avisos vazia era passada como `null` ao DOM | Itens vazios são filtrados antes de montar o resultado |
 | Rótulo `INDENT` invisível na tabela e na contagem | Captura de tela | A classe da categoria deixa o texto transparente (para desenhar o recuo no código) | Cor própria para os rótulos; teste de regressão na tabela |
+| `>=`, `<=`, `!=` e `==` desenhados como um único símbolo (≥, ≤, ≠) | Prints da validação no Docker (no ambiente local a fonte do Google não carregava, por isso não apareceu antes) | Ligaduras da fonte JetBrains Mono: o estudante via um caractere onde o lexema tem dois | Ligaduras desligadas em toda a página (`font-variant-ligatures: none`); teste de regressão `test_operadores_compostos_sem_ligaduras`, que reprova se a regra for removida |
 | Coluna "Coluna" cortada na tabela e controles quebrados em duas linhas no celular | Captura de tela em 390 px | Nomes de tipo longos e botões largos | Quebra dos nomes depois de `_`, grade 1:1 no desktop e botões menores no celular |
 
 ### Execução no Docker (Windows, Docker 29.8.2, 27/10/2026)
@@ -67,7 +68,7 @@ Comandos: `git pull` e `powershell -ExecutionPolicy Bypass -File scripts\testar.
 | 3. Testes do frontend no contêiner | Aprovados |
 | 4. Testes de interface (Playwright contra o Nginx) | 47 aprovados, 0 reprovados, em 46,3 s |
 
-Evidências: [`validacao/06-etapa3-testes-docker.png`](validacao/06-etapa3-testes-docker.png) (resumo do script) e [`validacao/07-etapa3-interface-docker.png`](validacao/07-etapa3-interface-docker.png) (interface 0.3.0 em http://localhost:8080, com a fase Tokens disponível). Nenhuma falha no Docker: as mesmas suítes passaram no ambiente local e nos contêineres.
+Evidências: [`validacao/06-etapa3-testes-docker.png`](validacao/06-etapa3-testes-docker.png) (resumo do script) e [`validacao/07-etapa3-interface-docker.png`](validacao/07-etapa3-interface-docker.png) (interface 0.3.0 em http://localhost:8080, com a fase Tokens disponível). Todas as suítes passaram no Docker. Os prints da interface com o exemplo "Erros léxicos" analisado ([`validacao/08-etapa3-erros-lexicos-docker.png`](validacao/08-etapa3-erros-lexicos-docker.png) e [`validacao/09-etapa3-passo-a-passo-docker.png`](validacao/09-etapa3-passo-a-passo-docker.png)) mostraram um defeito visual que os testes não pegavam: com a fonte JetBrains Mono carregada da internet, `>=` aparecia como `≥` (ligadura tipográfica). O defeito foi corrigido e ganhou um teste de regressão (ver "Falhas encontradas e correções"); a suíte de interface passou a ter 48 testes.
 
 ### Pendências
 
