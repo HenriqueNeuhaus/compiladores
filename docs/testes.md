@@ -56,9 +56,21 @@ Os testes de regressão das etapas anteriores continuam passando: `/api/health`,
 | Rótulo `INDENT` invisível na tabela e na contagem | Captura de tela | A classe da categoria deixa o texto transparente (para desenhar o recuo no código) | Cor própria para os rótulos; teste de regressão na tabela |
 | Coluna "Coluna" cortada na tabela e controles quebrados em duas linhas no celular | Captura de tela em 390 px | Nomes de tipo longos e botões largos | Quebra dos nomes depois de `_`, grade 1:1 no desktop e botões menores no celular |
 
+### Execução no Docker (Windows, Docker 29.8.2, 27/10/2026)
+
+Comandos: `git pull` e `powershell -ExecutionPolicy Bypass -File scripts\testar.ps1`
+
+| Etapa do script | Resultado |
+| --- | --- |
+| 1. Implantação (build + healthcheck) | Aprovada |
+| 2. Testes do backend no contêiner | Aprovados |
+| 3. Testes do frontend no contêiner | Aprovados |
+| 4. Testes de interface (Playwright contra o Nginx) | 47 aprovados, 0 reprovados, em 46,3 s |
+
+Evidências: [`validacao/06-etapa3-testes-docker.png`](validacao/06-etapa3-testes-docker.png) (resumo do script) e [`validacao/07-etapa3-interface-docker.png`](validacao/07-etapa3-interface-docker.png) (interface 0.3.0 em http://localhost:8080, com a fase Tokens disponível). Nenhuma falha no Docker: as mesmas suítes passaram no ambiente local e nos contêineres.
+
 ### Pendências
 
-- Executar `scripts\testar.ps1` no Docker (Windows) com a versão 0.3.0 e registrar o resultado.
 - Testes de interface em Firefox e WebKit.
 
 ## Etapa 2 — Interface web e entrada de código-fonte (15/10/2026)

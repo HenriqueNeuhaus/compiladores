@@ -368,8 +368,9 @@ BASE_URL=http://localhost:8090 python -m unittest tests.e2e.test_interface -v
 | 15/10/2026 | Windows, Docker 29.8.2 (`scripts/testar.ps1`), 1ª execução | aprovado | aprovado | falhou: pacote `playwright` ausente na imagem (corrigido) | aprovada |
 | 15/10/2026 | Windows, Docker 29.8.2 (`scripts/testar.ps1`), após a correção | aprovado | aprovado | 31 de 31 | aprovada (build + healthcheck) |
 | 27/10/2026 | Etapa 3 — Linux, Python 3.13, Node 22, servidor local | 107 de 107 | 53 de 53 | 47 de 47 | não executada nesse ambiente |
+| 27/10/2026 | Etapa 3 — Windows, Docker 29.8.2 (`scripts/testar.ps1`) | aprovado | aprovado | 47 de 47 | aprovada (build + healthcheck) |
 
-Evidências da execução no Docker: [testes](docs/validacao/04-etapa2-testes-docker.png) e [interface em http://localhost:8080](docs/validacao/05-etapa2-interface-docker.png).
+Evidências da execução no Docker — Etapa 2: [testes](docs/validacao/04-etapa2-testes-docker.png) e [interface](docs/validacao/05-etapa2-interface-docker.png); Etapa 3: [testes](docs/validacao/06-etapa3-testes-docker.png) e [interface](docs/validacao/07-etapa3-interface-docker.png).
 
 O registro completo, com os comandos, as falhas encontradas e as correções, está em [`docs/testes.md`](docs/testes.md).
 
@@ -391,7 +392,7 @@ O registro completo, com os comandos, as falhas encontradas e as correções, es
 | --- | --- | --- |
 | 1 | Linguagem, estrutura inicial, Docker e "Hello, World!" | Concluída; validação limpa no Windows em 15/10/2026, com evidências em [`docs/validacao/`](docs/validacao/) |
 | 2 | Interface web, entrada de código, exemplos, comunicação, validações e testes automatizados | Concluída; validada no Docker (Windows) em 15/10/2026 |
-| 3 | Analisador léxico do subconjunto, tabela de tokens, código colorido, erros léxicos e passo a passo com `INDENT`/`DEDENT` | Esta versão (0.3.0) |
+| 3 | Analisador léxico do subconjunto, tabela de tokens, código colorido, erros léxicos e passo a passo com `INDENT`/`DEDENT` | Esta versão (0.3.0); validada no Docker (Windows) em 27/10/2026 |
 | 4 | Analisador sintático com construção passo a passo da árvore | Prevista |
 
 ## 14. Analisador léxico (Etapa 3)
