@@ -309,6 +309,9 @@ class TestTabelaDeTokens(BaseInterface):
         expect(linhas.nth(4).locator("td")).to_have_text(["5", "PALAVRA_RESERVADA", "if", "2", "1"])
         expect(linhas.nth(10).locator("td")).to_have_text(["11", "INDENT", "4 espaços", "3", "1"])
         expect(linhas.nth(17).locator("td")).to_have_text(["18", "FIM_DE_ARQUIVO", "(fim)", "4", "1"])
+        # Regressão: o rótulo INDENT herdava a cor transparente do destaque do código.
+        cor = linhas.nth(10).locator(".tipo").evaluate("e => getComputedStyle(e).color")
+        self.assertNotEqual(cor, "rgba(0, 0, 0, 0)")
 
     def test_contagem_por_categoria(self):
         self.preencher(PROGRAMA_BLOCO)

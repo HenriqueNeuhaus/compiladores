@@ -263,7 +263,7 @@ button {
   padding: 3px 4px 3px 10px; border-radius: 999px;
   font-size: 0.8125rem; background: var(--folha); border: 1px solid var(--linha);
 }
-.chip.cat-indent { background: #fde9c7; color: #7a4f00; }
+.chip.cat-indent, .tipo.cat-indent { background: #fde9c7; color: #7a4f00; }
 .chip-qtd {
   min-width: 1.6em; padding: 0 6px; text-align: center; border-radius: 999px;
   font-family: var(--fonte-codigo); font-weight: 600; background: rgba(23, 50, 77, 0.08);

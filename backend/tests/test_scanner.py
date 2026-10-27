@@ -299,6 +299,14 @@ class TestErrosLexicos(unittest.TestCase):
         self.assertEqual(codigos_de_erro("x = 3."), ["literal_real_incompleto"])
         self.assertEqual(codigos_de_erro("x = 007"), ["zeros_a_esquerda"])
 
+    def test_real_sem_digito_antes_do_ponto(self):
+        # Python aceita ".5", mas no subconjunto o real começa com dígito.
+        r = analisar("x = .5 + y.z")
+        self.assertEqual([e.codigo for e in r.erros],
+                         ["literal_real_incompleto", "operador_fora_do_subconjunto"])
+        self.assertEqual(r.erros[0].lexema, ".5")
+        self.assertIn("'0.5'", r.erros[0].mensagem)
+
     def test_barra_invertida(self):
         self.assertEqual(codigos_de_erro("x = 1 + \\\n    2\n"), ["continuacao_com_barra"])
         self.assertEqual(codigos_de_erro("x = 1 \\ 2"), ["caractere_nao_reconhecido"])

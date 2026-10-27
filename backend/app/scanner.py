@@ -607,6 +607,17 @@ class Scanner:
 
     def _ler_operador_ou_desconhecido(self) -> None:
         linha, coluna = self.linha, self.coluna
+        # ".5" é válido em Python, mas no subconjunto o real começa com dígito.
+        if self.fonte[self.pos] == "." and self.fonte[self.pos + 1:self.pos + 2].isdigit():
+            inicio = self.pos
+            self._avancar()
+            while self.pos < len(self.fonte) and self.fonte[self.pos].isdigit():
+                self._avancar()
+            lexema = self.fonte[inicio:self.pos]
+            self._erro("literal_real_incompleto", lexema, linha, coluna,
+                       f"número real incompleto '{lexema}': antes do ponto deve vir pelo "
+                       f"menos um dígito (por exemplo, '0{lexema}').")
+            return
         for tamanho in (3, 2, 1):
             candidato = self.fonte[self.pos:self.pos + tamanho]
             if len(candidato) < tamanho:
