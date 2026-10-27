@@ -1,13 +1,14 @@
 """API do visualizador educacional de compiladores (subconjunto de Python).
 
-Etapa 2: a API recebe o código-fonte, valida a entrada e confirma o
-recebimento. As análises léxica e sintática serão adicionadas nas próximas
-etapas, aproveitando o mesmo endpoint POST /api/analisar.
+Etapa 3: a API recebe o código-fonte, valida a entrada e executa a análise
+léxica (scanner), devolvendo tokens, erros léxicos e o passo a passo. A
+análise sintática será adicionada na Etapa 4, no mesmo endpoint.
 
 Endpoints:
 - GET  /api/health   -> verificação de saúde usada pelo Docker Compose;
 - GET  /api/hello    -> mensagem da Etapa 1, mantida por compatibilidade;
-- POST /api/analisar -> recebe {"codigo": "..."} e devolve uma resposta JSON.
+- POST /api/analisar -> recebe {"codigo": "..."} e devolve o resultado da
+                        análise léxica em JSON.
 """
 
 import json
@@ -19,20 +20,26 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 
+from . import scanner
 from .validacao import LIMITE_CARACTERES, ErroValidacao, estatisticas, validar_corpo
 
 logger = logging.getLogger("compiladores")
 
-VERSAO = "0.2.0"
+VERSAO = "0.3.0"
 
 # Limite do corpo bruto da requisição, em bytes. Um caractere UTF-8 ocupa até
 # 4 bytes; a folga cobre as aspas e o nome do campo no JSON.
 LIMITE_BYTES = LIMITE_CARACTERES * 4 + 1024
 
-MENSAGEM_RECEBIDO = (
-    "Código recebido com sucesso. A análise léxica e sintática será "
-    "implementada nas próximas etapas do projeto."
-)
+def mensagem_lexica(resultado: scanner.ResultadoLexico) -> str:
+    """Resumo da análise léxica para a área de resultados."""
+    total = len(resultado.tokens)
+    if resultado.sucesso:
+        return f"Análise léxica concluída sem erros: {total} tokens reconhecidos."
+    erros = len(resultado.erros)
+    plural = "erro léxico encontrado" if erros == 1 else "erros léxicos encontrados"
+    return (f"Análise léxica concluída com {erros} {plural}. "
+            f"Os trechos válidos foram reconhecidos como {total} tokens.")
 MENSAGEM_ERRO_INTERNO = (
     "Ocorreu um erro inesperado ao processar a solicitação. Tente novamente."
 )
@@ -71,11 +78,13 @@ async def analisar(request: Request) -> JSONResponse:
     except ErroValidacao as erro:
         return resposta_erro(erro.tipo, erro.mensagem, erro.status)
 
+    resultado = scanner.analisar(codigo)
     return JSONResponse(
         {
             "recebido": True,
-            "mensagem": MENSAGEM_RECEBIDO,
+            "mensagem": mensagem_lexica(resultado),
             "estatisticas": estatisticas(codigo),
+            **resultado.como_dict(),
         }
     )
 
