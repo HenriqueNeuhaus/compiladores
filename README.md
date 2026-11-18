@@ -7,7 +7,9 @@ Software educacional web para estudar as **análises léxica e sintática** com 
 > - Primeiro uso: [`docs/tutorial.md`](docs/tutorial.md)
 > - Gramática (EBNF), precedência e construções: [`docs/gramatica.md`](docs/gramatica.md)
 > - Escopo léxico (categorias, decisões e erros): [`docs/escopo-lexico.md`](docs/escopo-lexico.md)
-> - Registros para o artigo (Materiais e Métodos e fluxograma): [`docs/materiais-e-metodos.md`](docs/materiais-e-metodos.md)
+> - Proposta e seção Materiais e Métodos do artigo (escopo, arquitetura, fluxograma, critérios): [`docs/materiais-e-metodos.md`](docs/materiais-e-metodos.md)
+> - Casos de teste documentados (CT-01 a CT-45): [`docs/casos-de-teste.md`](docs/casos-de-teste.md)
+> - Plano de avaliação e formulário da avaliação por pares: [`docs/plano-de-avaliacao.md`](docs/plano-de-avaliacao.md)
 > - Definição do problema e revisão de literatura: [`docs/revisao-literatura.md`](docs/revisao-literatura.md)
 
 ![Tela principal do Visualizador de Compiladores](docs/interface/tela-principal.png)
@@ -126,10 +128,14 @@ compiladores/
 │   ├── testar.ps1             # roda todos os testes no Docker (Windows)
 │   ├── testar.sh              # idem (Linux/macOS)
 │   ├── testar-ia.ps1          # valida o assistente com o Llama 3.2 de verdade (Windows)
-│   └── testar-ia.sh           # idem (Linux/macOS)
+│   ├── testar-ia.sh           # idem (Linux/macOS)
+│   └── casos_de_teste.py      # gera docs/casos-de-teste.md a partir do JSON dos casos
 ├── docs/
 │   ├── gramatica.md           # gramática EBNF, precedência, construções e exemplos
-│   ├── materiais-e-metodos.md # decisões técnicas e fluxograma para o artigo
+│   ├── materiais-e-metodos.md # seção 3 do artigo: proposta, arquitetura, fluxo, critérios, avaliação
+│   ├── casos-de-teste.md      # CT-01 a CT-45 (gerado de backend/tests/casos_de_teste.json)
+│   ├── plano-de-avaliacao.md  # roteiro de tarefas e formulário (Likert 1–5)
+│   ├── figuras/               # fluxograma e diagrama de componentes (Mermaid, SVG, PNG)
 │   ├── escopo-lexico.md       # categorias de token, decisões e erros léxicos
 │   ├── tutorial.md            # roteiro de primeiro uso
 │   ├── testes.md              # registro das execuções de teste
@@ -445,6 +451,7 @@ Os testes cresceram junto com cada funcionalidade e cobrem estes níveis:
 | --- | --- | --- | --- | --- |
 | Unitário do parser | Cada construção válida e a AST esperada; precedência e associatividade (`2 + 3 * 4`, `10 - 3 - 2`, `(10 + 5) * 2`, menos unário); aninhamento; construções incompletas; combinações inválidas; posições de nós e erros; campos `encontrado`/`esperado`/`regra`; recuperação de erros; casos de borda (vazio, só comentários, um comando, fim no meio, aninhamento excessivo, programa grande); integração com o scanner; árvore de derivação; gramática do código igual à de `docs/gramatica.md`; **comparação com o módulo `ast` do Python** (estrutura e posições) em programas de referência e em 300 programas aleatórios | `unittest` | `backend/tests/test_parser.py` | 72 |
 | Unitário do scanner | Palavras reservadas, identificadores, literais, operadores simples e compostos, delimitadores, comentários, espaços, indentação, posições, cada erro léxico, casos de borda e comparação com o `tokenize` do Python em 300 programas aleatórios | `unittest` | `backend/tests/test_scanner.py` | 58 |
+| Casos documentados | Os 45 casos CT-01 a CT-45 de `docs/casos-de-teste.md` (válidos, erros léxicos, sintáticos, casos de borda); os 5 semânticos previstos só verificam a parte léxica e sintática até a Etapa 5 (teste ignorado) | `unittest` | `backend/tests/test_casos_de_teste.py` + `casos_de_teste.json` | 5 (1 ignorado) |
 | Unitário (backend) | Regras de validação e estatísticas | `unittest` | `backend/tests/test_validacao.py` | 20 |
 | Endpoints (backend) | Contrato com os campos da Etapa 3 preservados e `lexico`/`sintatico`; AST e sucesso para código válido; erros e AST nula para erro sintático; parser não executado com erro léxico; códigos HTTP; entrada vazia; falhas do scanner ou do parser como 500 genérico; entrada no limite; regressão das Etapas 1 a 3 | `unittest` | `backend/tests/test_api.py` | 36 |
 | Assistente de IA (backend) | Comunicação com um Ollama falso (`/api/chat` e `/api/tags`), extração de `message.content`, resposta vazia ou inválida, modelo não baixado, indisponibilidade com nova tentativa, tempo limite, contexto montado a partir do scanner e do parser, dados delimitados contra injeção, pedidos inválidos, análise funcionando sem a IA | `unittest` | `backend/tests/test_ia.py` | 21 |
@@ -711,7 +718,9 @@ Cada erro traz `encontrado`, `esperado`, a `regra` e a `producao` envolvidas, a 
 
 ```bash
 cd backend && python -m unittest tests.test_parser -v       # parser (72 testes)
-cd backend && python -m unittest discover -s tests -t . -v  # backend completo (207 testes)
+cd backend && python -m unittest discover -s tests -t . -v  # backend completo (212 testes, 1 ignorado)
+cd backend && python -m unittest tests.test_casos_de_teste -v  # casos CT-01 a CT-45
+python scripts/casos_de_teste.py --checar                   # docs/casos-de-teste.md atualizado?
 cd frontend && node --test "tests/unit/*.test.js"           # frontend (74 testes)
 BASE_URL=http://localhost:8090 python -m unittest tests.e2e.test_interface -v   # interface (77 testes)
 powershell -ExecutionPolicy Bypass -File scripts\testar.ps1  # tudo no Docker (Windows)

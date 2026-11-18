@@ -1,95 +1,238 @@
-# Registros para o artigo: Materiais e Métodos (Etapa 4)
+# 3 Materiais e Métodos
 
-Este documento reúne as decisões técnicas, o fluxograma e os critérios de avaliação do software. O objetivo é que sirvam de base para a seção **Materiais e Métodos** do artigo. Ele descreve só o que foi implementado e testado até a versão 0.4.0.
+> Texto da seção **Materiais e Métodos** do artigo, versão da Tarefa 4 (proposta, fluxograma e plano de avaliação). Descreve o software na versão 0.4.0 e o método planejado para avaliá-lo. Partes ainda não implementadas estão marcadas como **pendente (Etapa 5)** ou **planejado**. Voltar ao [README](../README.md).
+>
+> Documentos relacionados: [casos de teste](casos-de-teste.md) · [plano de avaliação e formulário](plano-de-avaliacao.md) · [gramática](gramatica.md) · [registro de testes](testes.md) · [revisão de literatura](revisao-literatura.md).
 
-## 1. Fluxograma do sistema
+Este trabalho é uma pesquisa aplicada de desenvolvimento de software educacional, conduzida de forma incremental em cinco etapas (linguagem e ambiente; interface; análise léxica; análise sintática; análise semântica). Cada etapa produziu uma versão executável, testada antes da seguinte. A avaliação combina verificação técnica automatizada, testes manuais roteirizados, avaliação das explicações geradas por IA e uma avaliação por pares com estudantes e professor, descritas na seção 3.6.
 
-![Fluxograma: entrada, análise léxica, análise sintática, análise semântica (futura) e apresentação](figuras/fluxograma.png)
+## 3.1 Linguagem e escopo
 
-A fonte do fluxograma está em [`figuras/fluxograma.mmd`](figuras/fluxograma.mmd), no formato Mermaid, e a versão vetorial em [`figuras/fluxograma.svg`](figuras/fluxograma.svg). A análise semântica (Etapa 5) e o assistente de IA aparecem tracejados: a primeira ainda não existe, e o segundo é opcional, sem influência nos resultados das análises.
+**Linguagem analisada.** Um subconjunto de Python 3. A escolha se apoia em três razões, já apresentadas na Introdução: é a linguagem com que muitos estudantes iniciam a graduação, permite um subconjunto pequeno sem perder realismo e tem uma particularidade léxica pouco explorada no ensino, a indentação significativa, que o scanner transforma nos tokens `NOVA_LINHA`, `INDENT` e `DEDENT`. Nenhuma das dez ferramentas e estudos analisados nas Etapas 1 a 4 usa Python como linguagem de entrada (ver [revisão de literatura](revisao-literatura.md)).
 
-## 2. Materiais
+**Subconjunto suportado.** Atribuição simples; literais inteiros, reais, strings (aspas simples ou duplas) e lógicos (`True`, `False`); operadores aritméticos `+ - * / %`, menos e mais unários e os seis relacionais; parênteses; chamadas de função com zero ou mais argumentos (`print(...)`); `if`/`elif`/`else`; `while`; blocos aninhados por indentação; comentários de linha.
 
-| Componente | Tecnologia e versão | Papel |
-| --- | --- | --- |
-| Linguagem analisada | Subconjunto de Python 3 (15 regras EBNF) | Objeto de estudo do estudante |
-| Backend | Python 3.12, Starlette 1.6, Uvicorn 0.53 | API HTTP com scanner e parser |
-| Scanner | Código próprio (`backend/app/scanner.py`) | Etapa 3; reaproveitado sem alterações |
-| Parser | Código próprio, descendente recursivo (`backend/app/parser.py`) | Etapa 4 |
-| Frontend | HTML, CSS e JavaScript (módulos ES, sem build), Nginx 1.27 | Interface web responsiva |
-| Assistente (opcional) | Ollama (`ollama/ollama:latest`) com Llama 3.2 3B | Explicações didáticas dos resultados |
-| Infraestrutura | Docker Compose: serviços `backend`, `frontend` e `ollama`, mais o perfil `testes` | Ambiente reproduzível |
-| Testes | `unittest` (Python), `node --test` (Node 22), Playwright 1.56 com Chromium | Unitários, endpoints, interface, regressão |
-| Oráculos de validação | Módulos `tokenize` e `ast` da biblioteca padrão do Python | Referência para conferir scanner e parser |
+**Gramática.** Quinze regras em EBNF, com símbolo inicial `programa`, sem recursão à esquerda. Decisões com um token à frente, exceto a distinção entre atribuição e chamada no início da instrução, que usa dois (LL(2) local). A versão comentada, com a tabela de precedência e a correspondência com os tokens, está em [`gramatica.md`](gramatica.md); um teste automatizado falha se o código e o documento divergirem.
 
-## 3. Métodos: decisões técnicas do parser
+```ebnf
+programa        = { instrucao } FIM_DE_ARQUIVO ;
+instrucao       = atribuicao | chamada_simples | condicional | repeticao ;
+atribuicao      = IDENTIFICADOR "=" expressao NOVA_LINHA ;
+chamada_simples = chamada NOVA_LINHA ;
+condicional     = "if" expressao ":" bloco { "elif" expressao ":" bloco } [ "else" ":" bloco ] ;
+repeticao       = "while" expressao ":" bloco ;
+bloco           = NOVA_LINHA INDENT instrucao { instrucao } DEDENT ;
+expressao       = comparacao ;
+comparacao      = soma [ OPERADOR_RELACIONAL soma ] ;
+soma            = termo { ( "+" | "-" ) termo } ;
+termo           = fator { ( "*" | "/" | "%" ) fator } ;
+fator           = ( "+" | "-" ) fator | primario ;
+primario        = LITERAL_INTEIRO | LITERAL_REAL | LITERAL_STRING | "True" | "False"
+                | chamada | IDENTIFICADOR | "(" expressao ")" ;
+chamada         = IDENTIFICADOR "(" [ argumentos ] ")" ;
+argumentos      = expressao { "," expressao } ;
+```
 
-1. **Gramática antes do código.** A gramática foi definida em EBNF ([`gramatica.md`](gramatica.md)), sem recursão à esquerda e com decisões resolvidas por no máximo dois tokens à frente. Os terminais são exatamente as categorias de token da Etapa 3, e o scanner não precisou mudar.
-2. **Estratégia descendente recursiva, escrita à mão.** Há uma função por não terminal. A escolha é didática: a pilha de chamadas do parser é a pilha de regras exibida ao estudante, e cada função conhece o contexto para explicar o erro com a regra violada. Nenhum gerador (Yacc/Bison, ANTLR, PLY) foi usado.
-3. **Precedência pela estrutura da gramática:** `comparacao → soma → termo → fator → primario`. A associatividade à esquerda vem dos laços `{ }`; a comparação é não associativa.
-4. **AST com formato único.** Cada nó tem `id`, `tipo`, `regra`, `papel`, posição inicial e final, `atributos`, `passo` e `filhos`. A árvore de derivação é registrada ao mesmo tempo, para comparar as duas representações.
-5. **Erros léxicos bloqueiam o parser.** Com tokens faltando, o parser produziria diagnósticos falsos. O motivo é informado na resposta e na interface.
-6. **Recuperação de erros** em modo pânico (sincronização no fim da linha) e por inserção (`:` ausente). Acumula até 50 erros, sem cascata nos casos testados.
-7. **Registro de passos** (entrar em regra, consumir token, construir nó, erro, recuperação) para a construção passo a passo na interface.
-8. **Assistente de IA isolado.** O backend reanalisa o código e envia ao modelo só os resultados reais, delimitados como dados. A análise não depende do Ollama.
-9. **Desenvolvimento incremental com testes a cada construção.** A ordem foi expressões → atribuições → chamadas → `if/elif/else` → `while` → erros → recuperação. A cada passo foram executados também os testes anteriores (regressão).
+**Não suportado (decisão de escopo).** `def`, `return`, `for`, `and`/`or`/`not`, `in`, listas, dicionários, índices, atributos (`a.b`), atribuições múltiplas e compostas (`+=`), comparações encadeadas (`a < b < c`), `**` e `//`, strings com três aspas ou prefixo, números em outras bases ou em notação científica e identificadores com acentos. Palavras reservadas de Python fora do subconjunto geram aviso léxico e erro sintático específico; operadores fora do subconjunto geram erro léxico. O escopo léxico completo está em [`escopo-lexico.md`](escopo-lexico.md).
 
-## 4. Critérios de avaliação (definidos antes dos resultados)
+**Público-alvo.** Estudantes de graduação em Ciência da Computação, Inteligência Artificial e cursos afins que cursam ou revisam Compiladores, e professores que queiram demonstrar as fases de análise em aula.
 
-| Critério | Como é medido | Meta |
-| --- | --- | --- |
-| C1. Correção da AST | Comparação da estrutura e das posições com o módulo `ast` do Python em programas de referência e em 300 programas aleatórios (semente fixa) | 100% de concordância |
-| C2. Precedência e associatividade | Casos `2 + 3 * 4`, `10 - 3 - 2`, `(10 + 5) * 2`, unário, relacional | AST igual à esperada |
-| C3. Rejeição de programas inválidos | Programas que o próprio Python rejeita (`compile`) também devem ser rejeitados | 100% |
-| C4. Qualidade do diagnóstico | Cada erro com linha, coluna, `encontrado`, `esperado`, regra e mensagem sem detalhes internos | Todos os casos de teste |
-| C5. Recuperação | Vários erros em um programa são relatados sem erros em cascata | Casos de teste de recuperação |
-| C6. Robustez | Entradas vazias, só comentários, grandes, aninhadas demais e com caracteres especiais não derrubam a aplicação | Nenhum erro 500 ou travamento |
-| C7. Consistência entre visualizações | Tokens consumidos pelo parser são os da tabela; posições na árvore iguais às da tabela | Testes de interface |
-| C8. Regressão | Testes das Etapas 1 a 3 continuam passando; scanner produz os mesmos tokens | 100% |
-| C9. Reprodutibilidade | Fluxo completo validado com Docker Compose em ambiente limpo | `scripts/testar.ps1` aprovado |
-| C10. Assistente (diferencial) | Explicações geradas pelo modelo com o contexto do compilador e tratamento de indisponibilidade | `scripts/testar-ia.ps1` |
+**Funcionalidades educacionais.**
 
-## 5. Casos de teste (válidos e inválidos)
-
-| Grupo | Exemplos |
+| Funcionalidade | Situação |
 | --- | --- |
-| Válidos | atribuição com cada tipo de literal; chamadas com 0, 1 e vários argumentos; `if`, `if/else`, `if/elif/elif/else`; `while`; blocos aninhados em três níveis; condições com parênteses e `%`; código vazio; só comentários; um comando sem quebra final |
-| Incompletos | `x = 5 +`; `total =`; `if x > 5` sem `:`; `x = (1 + 2 3)`; `print("a" "b")`; `print(a,)`; `x = ()`; `if:`; `if x:` + linha sem recuo; `while x < 3:` no fim |
-| Combinações inválidas | `else:` e `elif` sem `if`; `else` com recuo diferente do `if`; `x = 5 + * 2`; `x = = 2`; `True = 1`; `x = 1 + while`; `for i in x:`; `5 = x`; `if x = 1:`; `x == 1`; `x + 1`; `x = 1 2`; `a < b < c`; `x = 5)`; `if x: y = 1`; `if a and b:` |
-| Robustez | 300 parênteses aninhados; 500 sinais unários; 1 500 linhas; 55+ erros no mesmo programa |
+| Editor com sete exemplos comentados e validação da entrada | Implementado (Etapa 2) |
+| Tabela de tokens, código colorido por categoria, erros e avisos léxicos com linha e coluna | Implementado (Etapa 3) |
+| Passo a passo léxico, com a pilha de indentação e a geração de `INDENT`/`DEDENT` | Implementado (Etapa 3) |
+| AST e árvore de derivação do mesmo programa, alternáveis, com expandir/recolher, filtro e exportação JSON | Implementado (Etapa 4) |
+| Seleção de nó ou token com destaque do trecho no código, regra e produção da gramática | Implementado (Etapa 4) |
+| Passo a passo do parser (entrar em regra, consumir token, construir nó, erro, recuperação), com reprodução automática | Implementado (Etapa 4) |
+| Erros sintáticos com `encontrado`, `esperado`, regra violada e produção; recuperação com vários erros | Implementado (Etapa 4) |
+| Assistente de IA (Ollama + Llama 3.2) que explica um nó, token ou erro a partir dos resultados do compilador, com aviso de que pode errar | Implementado, opcional (Etapa 4) |
+| Uso por teclado, toque e telas a partir de 360 px | Implementado e testado (Etapas 2 a 4) |
+| Análise semântica e tabela de símbolos (declaração antes do uso, compatibilidade de tipos, funções conhecidas) | **Pendente (Etapa 5)** |
+| Geração de código | Fora do escopo |
 
-Os resultados estão em [`testes.md`](testes.md) (seção da Etapa 4).
+## 3.2 Materiais e tecnologias
 
-## 6. Comparação com ferramentas da literatura
+| Componente | Tecnologia e versão | Justificativa |
+| --- | --- | --- |
+| Implementação do compilador | Python 3.12 | Mesma linguagem analisada: os módulos `tokenize` e `ast` da biblioteca padrão servem de oráculo para validar o scanner e o parser |
+| Scanner e parser | Código próprio, sem geradores | A estrutura do código espelha a gramática e os passos podem ser registrados para a interface (seção 3.3) |
+| API HTTP | Starlette 1.6 e Uvicorn 0.53 | Framework ASGI mínimo; poucas dependências e testes sem servidor real |
+| Interface | HTML, CSS e JavaScript (módulos ES), sem etapa de build | Roda em qualquer navegador moderno; o estudante pode ler o código-fonte da interface |
+| Servidor web | Nginx 1.27 | Serve os arquivos estáticos e repassa `/api` ao backend (mesma origem, sem CORS) |
+| Assistente (opcional) | Ollama (`ollama/ollama:latest`) com Llama 3.2 3B | Modelo aberto executado localmente: sem custo, sem chave de API e sem enviar o código dos estudantes a terceiros |
+| Infraestrutura | Docker Compose (plugin v2) | Ambiente idêntico para estudante, professor e avaliadores |
+| Testes | `unittest` (Python), `node --test` (Node.js 22), Playwright 1.56 com Chromium | Unitários, endpoints, interface e ponta a ponta |
+| Diagramas | Mermaid (fontes `.mmd` em [`figuras/`](figuras/)) | Figuras versionadas como texto |
 
-| Trabalho | Como o parser é obtido | O que mostra da análise sintática | Mensagens de erro | Diferença em relação a este trabalho |
+**Ambiente de execução.**
+
+| Item | Valor |
+| --- | --- |
+| Sistemas operacionais | Windows 10/11, macOS ou Linux com Docker. Validado no Windows com Docker Desktop (Docker 29.8.2) e no Linux |
+| Versões mínimas | Git 2.30; Docker Engine 24.0; Docker Compose 2.20 |
+| Navegadores | Testes automatizados no Chromium (Playwright). Uso manual previsto em Chrome, Edge e Firefox atuais e em navegadores de celular; os não testados automaticamente serão conferidos nos testes manuais (seção 3.6) |
+| Portas | 8080 publicada (interface e API, via Nginx); 8000 (backend) e 11434 (Ollama) apenas na rede interna do Compose |
+| Dependências | Imagens `python:3.12-slim`, `nginx:1.27-alpine`, `ollama/ollama`, `node:22-alpine` e a imagem do Playwright; modelo `llama3.2` (cerca de 2 GB) no volume `ollama_data`. Não é preciso instalar Python nem Node.js |
+| Iniciar | `docker compose up --build -d --wait` e abrir `http://localhost:8080`; opcionalmente, `docker compose exec ollama ollama pull llama3.2` (uma vez) |
+| Encerrar | `docker compose down` (o volume do modelo é mantido); `docker compose down --rmi local` remove também as imagens construídas |
+| Testes | `scripts\testar.ps1` (Windows) ou `scripts/testar.sh`; assistente: `scripts\testar-ia.ps1` |
+
+**Programas de exemplo.** Os sete exemplos da interface ([`frontend/js/exemplos.js`](../frontend/js/exemplos.js)) foram escritos pelo autor para este projeto (origem autoral) e cobrem as construções do subconjunto e os três desfechos possíveis da análise. Os mesmos programas são verificados em testes automatizados.
+
+| Exemplo | Objetivo didático | Construções | Resultado esperado | Critérios (3.6) |
 | --- | --- | --- | --- | --- |
-| VAST (ALMEIDA-MARTÍNEZ; URQUIZA-FUENTES; VELÁZQUEZ-ITURBIDE, 2009) | Parser do aluno gerado com ANTLR ou CUP | Árvore sintática e animação da sua construção; interface para árvores grandes | Não é o foco | Aqui o parser é fixo e escrito à mão; em troca, mostra a pilha de regras, a regra de cada nó e a AST ao lado da árvore de derivação |
-| LP_Tools (GOLEMANOV; GOLEMANOVA, 2020) | Gera o código-fonte de um parser descendente recursivo a partir da gramática; simula análise ascendente | Simulação passo a passo e ações semânticas | Não é o foco | Aqui o estudante escreve programas, não gramáticas; o foco é ler a árvore e entender os erros do próprio código |
-| ITT (DEL VADO VÍRSEDA, 2023) | Ferramentas de geração (Flex/Bison, JFlex/CUP) | Explora autômatos e grafos gerados pelas ferramentas | Usa mensagens de erro de compiladores como recurso de ensino | Aqui as mensagens foram escritas para ensinar: dizem o que era esperado e citam a regra violada |
-| Conejo et al. (2024) | Exercícios de LL(1) e LR(1) gerados automaticamente | Tabelas e passos dos algoritmos, com correção automática | Retorno sobre a resposta do estudante | Aqui não há exercícios de construção de tabelas; o foco é o resultado da análise de um programa |
-| Graciano Junior et al. (2022) | JFlex na análise léxica; árvore de derivação gerada pela ferramenta | Árvore de derivação passo a passo, com animação | Não informado em detalhe | Aqui há AST e árvore de derivação, posições ligadas ao código e recuperação de vários erros |
-| Borela et al. (2025) | ANTLR 4 gera os analisadores | Lista de tokens e árvore, além das fases seguintes até o código-alvo | Não informado em detalhe | Cobre mais fases; não mostra a construção passo a passo nem explica as regras violadas |
+| Atribuição e expressões aritméticas | Primeiro contato: tokens e AST de expressões | atribuição, inteiro, real, `+ * /`, parênteses, `print`, comentário | Sem erros; AST com 4 atribuições e 2 chamadas | C1, C2, C7 |
+| Estrutura condicional | Blocos por indentação | `if/elif/else`, relacionais, strings | Sem erros; `INDENT`/`DEDENT` em cada ramo; nó `CONDICIONAL` | C1, C2 |
+| Repetição com blocos aninhados | Aninhamento e pilha de indentação | `while`, `if` dentro de `while`, `%`, `==` | Sem erros; dois níveis de bloco | C1, C2 |
+| Precedência e associatividade | Comparar três árvores | `+` com `*`, subtração encadeada, parênteses, menos unário | Sem erros; a árvore mostra a ordem de avaliação | C2, C11, C12 |
+| Erro sintático (tokens válidos) | Diferença entre erro léxico e sintático | `if` sem `:` | Nenhum erro léxico; 1 erro sintático (`dois_pontos_ausente`, linha 2) | C3 |
+| Erros sintáticos (vários) | Recuperação de erros | operando ausente, `:` ausente, `elif` sem condição, atribuição a literal | 4 erros sintáticos (linhas 2, 3, 5 e 7), sem cascata | C3, C4 |
+| Erros léxicos | Erros do scanner e decisão de não executar o parser | acento em nome, `$`, string sem fechar, `//` | 5 erros léxicos; parser não executado, com o motivo | C3 |
 
-**Lacunas observadas nos artigos lidos** (sem afirmar novidade absoluta): nenhum dos seis trabalhos descreve, ao mesmo tempo:
+O conjunto completo de **45 casos de teste** (CT-01 a CT-45), com entrada, resultado esperado e análise envolvida, está na seção 3.5 e em [`casos-de-teste.md`](casos-de-teste.md).
 
-- mensagens de erro sintático que citam a regra gramatical violada;
-- AST e árvore de derivação lado a lado;
-- seleção de um nó com destaque no código;
-- explicações geradas por um modelo de linguagem a partir dos resultados do compilador.
+**Materiais de apoio.** [README](../README.md) com instalação e uso; [tutorial](tutorial.md) para o estudante; [gramática comentada](gramatica.md) e [escopo léxico](escopo-lexico.md); legenda de categorias e de tipos de nó e botão de explicação na interface; assistente de IA opcional; [registro de testes](testes.md) com as execuções e falhas corrigidas.
 
-A gramática formal explícita e documentada também não aparece, para o subconjunto analisado, nas ferramentas baseadas em geradores. Essas são as contribuições que o artigo pode sustentar, dentro dos limites desta amostra.
+## 3.3 Arquitetura
 
-## Referências
+![Figura 1 — Diagrama de componentes](figuras/arquitetura.png)
 
-ALMEIDA-MARTÍNEZ, F. J.; URQUIZA-FUENTES, J.; VELÁZQUEZ-ITURBIDE, J. Á. Visualization of syntax trees for language processing courses. **Journal of Universal Computer Science**, v. 15, n. 7, p. 1546-1561, 2009.
+*Figura 1 — Componentes do sistema. Tracejado: pendente (análise semântica) ou opcional (assistente de IA). Fonte: [`figuras/arquitetura.mmd`](figuras/arquitetura.mmd).*
 
-BORELA, R. et al. Uma ferramenta educacional de apoio ao ensino de compiladores. In: WORKSHOP SOBRE EDUCAÇÃO EM COMPUTAÇÃO (WEI), 2025. **Anais** [...]. Porto Alegre: SBC, 2025.
+O sistema é uma aplicação web em três serviços do Docker Compose (Figura 1). O navegador recebe a interface do Nginx, que também repassa as chamadas `/api` ao backend. No backend, a requisição passa por validação, scanner e parser, nessa ordem; o resultado de cada fase é devolvido completo, para que a interface possa mostrar cada fase separadamente. O módulo de IA não participa da análise: só é chamado quando o estudante pede uma explicação, e então reanalisa o código e envia ao Ollama apenas os resultados do compilador.
 
-CONEJO MUÑOZ, R. et al. Teaching compilers: automatic question generation and intelligent assessment of grammars' parsing. **IEEE Transactions on Learning Technologies**, v. 17, p. 1734-1744, 2024.
+**Contrato de comunicação.** `POST /api/analisar` recebe `{"codigo": "<texto>"}` e devolve um JSON com:
 
-DEL VADO VÍRSEDA, R. Visualizing compiler design theory from implementation through an interactive tutoring tool: experiences and results. In: INTERNATIONAL CONFERENCE ON COMPUTER SUPPORTED EDUCATION (CSEDU), 2023. **Proceedings** [...]. Setúbal: SciTePress, 2023. v. 2, p. 333-340.
+- os campos da Etapa 3, mantidos por compatibilidade: `recebido`, `mensagem`, `estatisticas`, `sucesso`, `tokens`, `erros`, `avisos`, `comentarios`, `contagem`, `passos`;
+- `lexico`: `sucesso`, `mensagem`, `tokens`, `erros`, `avisos`;
+- `sintatico`: `executado`, `sucesso`, `ast`, `derivacao`, `erros`, `contagem_nos`, `passos`, `passos_truncados`, `gramatica` e, quando o parser não é executado, `motivo`.
 
-GOLEMANOV, T.; GOLEMANOVA, E. A set of tools to teach language processors construction. In: INTERNATIONAL CONFERENCE ON COMPUTER SYSTEMS AND TECHNOLOGIES (CompSysTech '20), 2020. **Proceedings** [...]. New York: ACM, 2020.
+Cada nó da AST tem `id`, `tipo`, `regra`, `papel`, posição inicial e final, `atributos`, `passo` e `filhos`. Cada erro sintático tem `codigo`, posição, `encontrado`, `esperado`, `regra`, `producao` e `mensagem`, por exemplo:
 
-GRACIANO JUNIOR, A. et al. Ferramenta interativa para o ensino de compiladores. In: SIMPÓSIO BRASILEIRO DE EDUCAÇÃO EM COMPUTAÇÃO (EDUCOMP), 2022. **Anais** [...]. Porto Alegre: SBC, 2022.
+```json
+{"tipo": "ERRO_SINTATICO", "codigo": "operando_ausente", "linha": 1, "coluna": 8,
+ "encontrado": "NOVA_LINHA", "esperado": ["expressao"], "regra": "soma",
+ "producao": "soma = termo { ( \"+\" | \"-\" ) termo } ;",
+ "mensagem": "Erro sintático na linha 1, coluna 8: o operador '+' precisa de um valor à direita, mas foi encontrado o fim da linha."}
+```
+
+Entradas inválidas recebem 400 (vazia ou só espaços), 413 (acima de 20 000 caracteres) ou 422 (JSON sem o campo `codigo` ou com tipo errado), sempre com `erro.tipo` e `erro.mensagem`. O assistente usa `POST /api/ia/explicar` (`tipo` = nó, token, erro ou pergunta; `codigo`; `referencia`) e `GET /api/ia/status`. A especificação completa está no [README, seção 10](../README.md#10-comunicação-entre-frontend-e-backend).
+
+**Decisões técnicas.**
+
+1. **Parser descendente recursivo escrito à mão, sem gerador.** A maioria das ferramentas analisadas depende de geradores (Lex/Yacc, Flex/Bison, JFlex/CUP, ANTLR) e mostra a árvore que eles produzem (ALMEIDA-MARTÍNEZ; URQUIZA-FUENTES; VELÁZQUEZ-ITURBIDE, 2009; DEL VADO VÍRSEDA, 2023; BORELA et al., 2025). Ortin et al. (2022) mostram que a própria escolha do gerador afeta o desempenho dos estudantes, o que indica que a ferramenta não é neutra para o aprendizado. Aqui, com uma função por não terminal, a pilha de chamadas do parser é a pilha de regras exibida ao estudante, e cada função conhece o contexto necessário para explicar o erro com a regra violada.
+2. **AST e árvore de derivação geradas na mesma passagem.** As árvores das ferramentas da Tarefa 3 são de derivação ou concretas; o VisAST (AALVIK; JÄRVI, 2019) mostra só a AST. Registrar as duas permite ao estudante compará-las para o mesmo programa.
+3. **Com erro léxico, o parser não é executado.** Com tokens faltando, o parser apontaria erros que não existem. A resposta informa `sintatico.executado = false` e o motivo, e a interface separa os dois tipos de erro.
+4. **Recuperação de erros** por inserção (`:` ausente) e modo pânico até o fim da linha, com no máximo 50 erros, para mostrar vários erros sem cascata.
+5. **Limites explícitos** (20 000 caracteres, 20 000 passos, 200 regras abertas) para que nenhuma entrada trave a interface; ao atingi-los, a resposta informa o limite.
+6. **Assistente de IA ancorado nos resultados do compilador.** Leinonen et al. (2023) mostram que explicações de mensagens de erro geradas por modelos de linguagem são em geral compreensíveis, mas corretas em menos da metade dos casos, e recomendam cautela e supervisão. Por isso o modelo recebe só dados reais (nó, produção, trecho do código, erro com `esperado` e `regra`), com temperatura baixa (0,2), e toda resposta traz o aviso de que o resultado oficial é o do scanner e do parser.
+7. **Oráculos da biblioteca padrão.** Os módulos `tokenize` e `ast` do Python servem de referência independente para validar tokens e árvores.
+
+**Limitações da arquitetura.** Execução local com Docker, que exige instalação e cerca de 4 GB de imagens; não há versão hospedada para uso em sala. O assistente roda no processador e pode levar de alguns segundos a alguns minutos (100 a 125 s por explicação na validação de 18/11/2026, sem placa de vídeo). Sem análise semântica, programas como `print(y)` sem atribuição a `y` são aceitos. A árvore é exibida como lista hierárquica navegável, não como desenho de nós e arestas.
+
+## 3.4 Fluxo de processamento
+
+![Figura 2 — Fluxograma do sistema](figuras/fluxograma.png)
+
+*Figura 2 — Fluxograma do processamento de um programa. Contorno contínuo: implementado. Cinza tracejado: pendente (Etapa 5). Tracejado sem fundo: opcional. Fundo avermelhado: pontos de retorno de erro. Fonte: [`figuras/fluxograma.mmd`](figuras/fluxograma.mmd).*
+
+A Figura 2 mostra o caminho de um programa desde a entrada até a apresentação. A entrada é validada duas vezes: no navegador, para evitar requisições inúteis, e no backend, que não confia no cliente. Os dois retornos de validação voltam ao editor.
+
+A análise léxica sempre é executada. Na primeira decisão, **se houver erro léxico**, o parser não é executado e o retorno de erro léxico traz os tokens válidos e os erros com linha e coluna. Esse é um ponto de retorno separado do sintático, para que o estudante saiba em qual fase o problema está. **Sem erro léxico**, o parser constrói a AST e a árvore de derivação. Se encontrar erro sintático, tenta se recuperar e continua; o retorno de erro sintático traz todos os erros, com o que foi encontrado, o que era esperado e a regra violada, e a AST nula.
+
+Os três blocos cinza tracejados (análise semântica, tabela de símbolos e o retorno de erro semântico) são a **Etapa 5, ainda não implementada**. Hoje o resultado sem erros segue diretamente para a apresentação (seta "hoje"). O assistente de IA é opcional e só é acionado a pedido do estudante, depois da análise.
+
+## 3.5 Casos de teste
+
+Os casos de teste foram definidos por categoria, antes da avaliação, e estão em [`casos-de-teste.md`](casos-de-teste.md), gerado a partir de [`backend/tests/casos_de_teste.json`](../backend/tests/casos_de_teste.json). O mesmo arquivo é executado por [`backend/tests/test_casos_de_teste.py`](../backend/tests/test_casos_de_teste.py), de modo que a documentação e os testes não divergem.
+
+| Categoria | Casos | Quantidade | Exemplos |
+| --- | --- | --- | --- |
+| Válidos | CT-01 a CT-13 | 13 | precedência, associatividade, parênteses, unário, chamadas, `if/elif/else`, três níveis de bloco, só comentários, última linha sem quebra |
+| Erros léxicos | CT-14 a CT-21 | 8 | `$`, identificador com acento, string sem fechar, `//`, parêntese não fechado, recuo inconsistente, tabulação |
+| Erros sintáticos | CT-22 a CT-33 | 12 | operando ausente, `:` ausente, `else` sem `if`, `5 = x`, operadores seguidos, comparação encadeada, bloco sem recuo, `=` na condição, `for`, fim antes do bloco, vários erros |
+| Erros semânticos previstos | CT-34 a CT-38 | 5 | variável sem atribuição, função não definida, `"a" - 1`, variável definida em um só ramo, divisão por zero literal — **pendente (Etapa 5)** |
+| Casos de borda | CT-39 a CT-45 | 7 | entrada vazia, só espaços, acima de 20 000 caracteres, 25 e 300 parênteses aninhados, 55 erros, 1 500 linhas |
+
+Modelo de cada caso:
+
+| Identificador | Categoria | Entrada | Resultado esperado | Análise envolvida |
+| --- | --- | --- | --- | --- |
+| CT-02 | válido | `r = 2 + 3 * 4` | AST `ATRIBUICAO(r, ADICAO(2, MULTIPLICACAO(3, 4)))` | léxica, sintática |
+| CT-15 | erro léxico | `preço = 10` | erro `identificador_com_caractere_nao_ascii`; parser não executado | léxica |
+| CT-23 | erro sintático | `if x > 5` sem `:` | erro `dois_pontos_ausente` na linha 2, regra `condicional`, sem cascata | léxica, sintática |
+| CT-34 | erro semântico (previsto) | `print(y)` | Etapa 5: `y` não definida. Hoje: aceito pelas análises léxica e sintática | léxica, sintática, semântica |
+| CT-43 | caso de borda | 300 parênteses aninhados | erro controlado `aninhamento_excessivo`, sem HTTP 500 | léxica, sintática |
+
+Nos casos semânticos, o teste confere hoje que o programa passa pelas análises léxica e sintática, condição para a análise semântica ser executada; a verificação semântica fica registrada como teste ignorado até a Etapa 5.
+
+## 3.6 Método de avaliação
+
+A avaliação responde a quatro perguntas, que não se somam: (1) o software produz resultados corretos? (2) os erros são relatados de forma correta e compreensível? (3) a interface é usável? (4) estudantes e professor percebem o software, e seus diferenciais, como úteis para aprender? As perguntas 1 e 2 são respondidas por verificação técnica; as 3 e 4, por percepção. **Não se pretende medir ganho de aprendizagem** nesta etapa (ver 3.7).
+
+### Critérios de avaliação
+
+| Critério | Descrição | Forma de verificação | Base |
+| --- | --- | --- | --- |
+| C1. Correção léxica | Tokens, posições, `INDENT`/`DEDENT` e erros léxicos corretos | Testes unitários; comparação com `tokenize` do Python; CT-01 a CT-21 | Requisito do projeto; comparação com implementação de referência |
+| C2. Correção sintática e da AST | Estrutura, precedência, associatividade e posições da AST | Testes unitários; comparação com o módulo `ast` em programas de referência e 300 aleatórios; CT-01 a CT-13 | AST como representação central (AALVIK; JÄRVI, 2019; ORTIN et al., 2022) |
+| C3. Diagnóstico de erros | Cada erro tem linha, coluna, encontrado, esperado, regra e mensagem compreensível sem detalhes internos | Testes automáticos dos campos; inspeção das mensagens por dois avaliadores; CT-14 a CT-33 | Compreensibilidade e explicação do erro (LEINONEN et al., 2023); diagnósticos em Graciano Junior et al. (2022) |
+| C4. Recuperação | Vários erros relatados, sem erros em cascata | CT-21, CT-23, CT-33, CT-44 | Requisito do projeto |
+| C5. Robustez | Entradas vazias, grandes ou profundas não travam nem geram HTTP 500 | CT-11 a CT-13, CT-39 a CT-45 | Requisito do projeto |
+| C6. Análise semântica | Erros semânticos e tabela de símbolos | CT-34 a CT-38 — **pendente (Etapa 5)** | Etapa 5 |
+| C7. Consistência entre visualizações | Tokens consumidos pelo parser iguais aos da tabela; posições da árvore iguais às do código; passo a passo coerente | Testes de interface (Playwright) | Ligação entre visualização e código (DEL VADO VÍRSEDA, 2023; BORELA et al., 2025) |
+| C8. Reprodutibilidade | O ambiente sobe e todos os testes passam em máquina limpa | `scripts/testar.ps1` no Windows com Docker; registro em `testes.md` | Requisito da disciplina |
+| C9. Qualidade das explicações da IA | Explicações compreensíveis, corretas, sem conteúdo desnecessário, com correção correta | Sete aspectos de Leinonen et al. (2023), dois avaliadores, concordância (kappa de Cohen) | Leinonen et al. (2023) |
+| C10. Usabilidade percebida | Facilidade de uso, intuitividade, clareza | Formulário, bloco B (Likert 1–5) | Facilidade e intuitividade (ORTIN et al., 2022); questionário de aceitação (BORELA et al., 2025) |
+| C11. Utilidade percebida para aprender | Tokens, árvore, erros e passo a passo ajudam a entender as análises | Formulário, bloco C | Utilidade para entender ASTs e parsing (AALVIK; JÄRVI, 2019); Sangal et al. (2018) |
+| C12. Percepção dos diferenciais | AST e derivação lado a lado, passo a passo do parser, regra violada, separação léxico × sintático, IA, Python, celular | Formulário, bloco D | Diferencial delimitado (seção 5 da Tarefa 4) |
+
+### Testes automatizados
+
+| Suíte | Ferramenta | Comando | Situação em 18/11/2026 |
+| --- | --- | --- | --- |
+| Backend: validação, API, scanner, parser, IA (Ollama simulado) | `unittest` | `docker compose --profile testes run --rm testes-backend` | 207 aprovados |
+| Casos documentados CT-01 a CT-45 | `unittest` | `... testes-backend python -m unittest tests.test_casos_de_teste -v` | 4 testes aprovados (40 casos), 1 ignorado (semântica, Etapa 5) |
+| Frontend (unitários) | `node --test` | `docker compose --profile testes run --rm testes-frontend` | 74 aprovados |
+| Interface ponta a ponta | Playwright + Chromium | `docker compose --profile testes run --rm testes-e2e` | 77 aprovados |
+| Tudo, com build e healthcheck | PowerShell / shell | `scripts\testar.ps1` ou `scripts/testar.sh` | aprovado |
+| Assistente com o modelo real | PowerShell | `scripts\testar-ia.ps1` | 5 de 5 |
+
+A sensibilidade dos testes é verificada por mutação manual (por exemplo, trocar a associatividade para a direita deve reprovar centenas de casos), como registrado em [`testes.md`](testes.md).
+
+### Testes manuais documentados
+
+Roteiro executado pelo autor antes da avaliação por pares, com registro em `testes.md` (data, navegador, dispositivo, resultado, captura):
+
+1. Instalação limpa no Windows: `docker compose up --build -d --wait`, abrir `http://localhost:8080`, `docker compose down`.
+2. Os sete exemplos no Chrome, Edge e Firefox, conferindo tokens, árvore e erros com o esperado da seção 3.2.
+3. Uso só com teclado: carregar exemplo, analisar, navegar na árvore, avançar o passo a passo.
+4. Uso em celular real (largura de cerca de 390 px): árvore, seleção por toque, lista de erros.
+5. Assistente: com o modelo instalado (explicar um nó, um token e um erro) e com o serviço `ollama` parado (mensagem de indisponibilidade, resto funcionando).
+
+### Avaliação das explicações da IA (C9)
+
+Seguindo Leinonen et al. (2023): para os 7 exemplos e os erros dos casos CT-14 a CT-33, gerar explicações com a configuração da aplicação (temperatura 0,2). Dois avaliadores (o autor e um colega que já cursou a disciplina) classificam cada explicação, de forma independente, em sete aspectos (sim/não): compreensível; contém explicação; explicação correta; contém conteúdo desnecessário; contém correção; correção correta; melhor que a mensagem original do parser. As divergências são discutidas depois do cálculo da concordância (kappa de Cohen). São relatadas as porcentagens por aspecto. A validação de 18/11/2026 já mostrou o padrão descrito pelos autores: explicações fluentes, que acertam a ideia principal, mas com imprecisões (por exemplo, citar a produção de `comparacao` ao explicar a multiplicação).
+
+### Avaliação por pares
+
+**Participantes.** Estudantes de Ciência da Computação e de Inteligência Artificial que cursam ou já cursaram Compiladores, e o professor da disciplina. Participação voluntária, sem relação com nota. Meta: pelo menos 10 respostas, sem garantia de representatividade.
+
+**Procedimento.** (1) O participante recebe o link da aplicação (executada pelo autor em uma máquina da sala ou pelo próprio participante com Docker) e um roteiro de cinco tarefas, cerca de 20 a 30 minutos: T1 analisar o exemplo de atribuição e localizar na tabela os tokens da primeira linha; T2 em `r = 2 + 3 * 4`, dizer qual operação fica mais perto da raiz da AST; T3 corrigir o exemplo "Erros sintáticos (vários)" usando apenas as mensagens; T4 carregar o exemplo de erros léxicos e explicar por que não há árvore; T5 (opcional) pedir ao assistente a explicação de um nó. (2) Em seguida, responde ao formulário (Google Forms) descrito em [`plano-de-avaliacao.md`](plano-de-avaliacao.md), com escala Likert de 1 (discordo totalmente) a 5 (concordo totalmente), como em Ortin et al. (2022) e Aalvik e Järvi (2019).
+
+**Privacidade.** Formulário anônimo: sem nome, e-mail (coleta de e-mails desativada), matrícula ou qualquer dado de identificação. O perfil se limita a curso, situação em relação à disciplina e dispositivo usado. Texto de consentimento na abertura; o participante pode desistir a qualquer momento. Os dados são relatados apenas de forma agregada.
+
+**Análise.** Para cada item: mediana, moda e distribuição percentual das respostas; média e desvio-padrão apenas como informação complementar. Consistência interna de cada bloco pelo alfa de Cronbach, como em Ortin et al. (2022), se houver respostas suficientes. Comparação descritiva por perfil (cursando, já cursou, professor), sem teste de hipótese com amostra pequena. Respostas abertas agrupadas por tema. A tarefa T2 tem resposta objetiva e serve como verificação de compreensão da árvore, não como medida de aprendizagem.
+
+## 3.7 Limitações do método
+
+- **Sem medida de aprendizagem.** O formulário mede percepção. Não há pré-teste, pós-teste nem grupo de comparação; Aalvik e Järvi (2019) e Ortin et al. (2022) mostram que mesmo com centenas de estudantes os efeitos atribuídos à ferramenta exigem cautela.
+- **Amostra pequena e de conveniência**, de uma única instituição, com participantes que conhecem o autor: risco de respostas favoráveis (viés de desejabilidade). O anonimato reduz, mas não elimina, esse risco.
+- **Participantes sabem que avaliam uma ferramenta nova**, sem cegamento, a mesma ameaça apontada por Ortin et al. (2022).
+- **A avaliação técnica verifica correção em relação à especificação**, não a adequação didática das mensagens; esta depende do julgamento dos avaliadores (C3, C9).
+- **O assistente de IA é não determinístico**; a avaliação descreve o comportamento observado na amostra, não garante o de outras perguntas.
+- **Navegadores e dispositivos.** Os testes automatizados usam só o Chromium; os demais navegadores e o celular real dependem dos testes manuais.
+- **A análise semântica não está implementada**; os critérios e casos correspondentes (C6, CT-34 a CT-38) serão avaliados na Etapa 5.

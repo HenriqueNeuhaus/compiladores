@@ -1,0 +1,1071 @@
+{
+  "versao": "0.4.0",
+  "descricao": "Casos de teste documentados da Etapa 4 (Tarefa 4). Fonte única: executados por backend/tests/test_casos_de_teste.py e convertidos em docs/casos-de-teste.md por scripts/casos_de_teste.py. Status 'previsto_etapa5' = comportamento semântico ainda não implementado; hoje só a parte léxica e sintática é verificada.",
+  "casos": [
+    {
+      "id": "CT-01",
+      "categoria": "válido",
+      "titulo": "Atribuição de literal inteiro",
+      "entrada": "x = 5\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "Tokens IDENTIFICADOR, OPERADOR_ATRIBUICAO, LITERAL_INTEIRO, NOVA_LINHA, FIM_DE_ARQUIVO; AST com um nó ATRIBUICAO.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": true,
+        "ast": "PROGRAMA(ATRIBUICAO(x, 5))"
+      },
+      "criterios": [
+        "C1",
+        "C2"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-02",
+      "categoria": "válido",
+      "titulo": "Precedência: multiplicação antes da adição",
+      "entrada": "r = 2 + 3 * 4\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "MULTIPLICACAO é filha de ADICAO (3 * 4 agrupado primeiro).",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": true,
+        "ast": "PROGRAMA(ATRIBUICAO(r, ADICAO[+](2, MULTIPLICACAO[*](3, 4))))"
+      },
+      "criterios": [
+        "C2"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-03",
+      "categoria": "válido",
+      "titulo": "Associatividade à esquerda da subtração",
+      "entrada": "r = 10 - 3 - 2\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "(10 - 3) - 2: a subtração mais interna fica à esquerda.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": true,
+        "ast": "PROGRAMA(ATRIBUICAO(r, SUBTRACAO[-](SUBTRACAO[-](10, 3), 2)))"
+      },
+      "criterios": [
+        "C2"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-04",
+      "categoria": "válido",
+      "titulo": "Parênteses mudam a ordem",
+      "entrada": "r = (10 + 5) * 2\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "ADICAO passa a ser filha de MULTIPLICACAO.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": true,
+        "ast": "PROGRAMA(ATRIBUICAO(r, MULTIPLICACAO[*](ADICAO[+](10, 5), 2)))"
+      },
+      "criterios": [
+        "C2"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-05",
+      "categoria": "válido",
+      "titulo": "Menos unário e resto",
+      "entrada": "r = -x % 3\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "OPERACAO_UNARIA liga mais forte que %.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": true,
+        "ast": "PROGRAMA(ATRIBUICAO(r, RESTO[%](OPERACAO_UNARIA[-](x), 3)))"
+      },
+      "criterios": [
+        "C2"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-06",
+      "categoria": "válido",
+      "titulo": "Chamada com vários argumentos",
+      "entrada": "print(\"soma:\", a + b)\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "CHAMADA_FUNCAO com dois argumentos, o segundo uma expressão.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": true,
+        "ast": "PROGRAMA(CHAMADA_FUNCAO[print](\"soma:\", ADICAO[+](a, b)))"
+      },
+      "criterios": [
+        "C2"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-07",
+      "categoria": "válido",
+      "titulo": "Chamada sem argumentos",
+      "entrada": "print()\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "CHAMADA_FUNCAO sem filhos.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": true,
+        "ast": "PROGRAMA(CHAMADA_FUNCAO[print]())"
+      },
+      "criterios": [
+        "C2"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-08",
+      "categoria": "válido",
+      "titulo": "Condicional if/elif/else",
+      "entrada": "nota = 7.5\nif nota >= 7:\n    print(\"Aprovado\")\nelif nota >= 5:\n    print(\"Recuperacao\")\nelse:\n    print(\"Reprovado\")\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "INDENT e DEDENT em cada bloco; AST com CONDICIONAL e três ramos.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": true
+      },
+      "criterios": [
+        "C1",
+        "C2"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-09",
+      "categoria": "válido",
+      "titulo": "Blocos aninhados em três níveis",
+      "entrada": "while a < 3:\n    if a % 2 == 0:\n        while b < 2:\n            b = b + 1\n    a = a + 1\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "Três INDENT e três DEDENT balanceados; REPETICAO > CONDICIONAL > REPETICAO.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": true
+      },
+      "criterios": [
+        "C1",
+        "C2"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-10",
+      "categoria": "válido",
+      "titulo": "Comparação com string e literal lógico",
+      "entrada": "ok = nome == \"Ana\"\nativo = True\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "COMPARACAO com LITERAL_STRING; True como LITERAL_LOGICO.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": true,
+        "ast": "PROGRAMA(ATRIBUICAO(ok, COMPARACAO[==](nome, \"Ana\")), ATRIBUICAO(ativo, True))"
+      },
+      "criterios": [
+        "C2"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-11",
+      "categoria": "válido",
+      "titulo": "Somente comentários",
+      "entrada": "# só comentário\n# outro\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "Comentários descartados pelo scanner; AST só com PROGRAMA.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": true,
+        "ast": "PROGRAMA()"
+      },
+      "criterios": [
+        "C1",
+        "C5"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-12",
+      "categoria": "válido",
+      "titulo": "Última linha sem quebra de linha",
+      "entrada": "print(x)",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "O scanner gera NOVA_LINHA antes de FIM_DE_ARQUIVO; programa aceito.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": true,
+        "ast": "PROGRAMA(CHAMADA_FUNCAO[print](x))"
+      },
+      "criterios": [
+        "C1",
+        "C5"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-13",
+      "categoria": "válido",
+      "titulo": "Acentos em string e comentário",
+      "entrada": "print(\"ação ✓\")  # comentário com acento\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "Caracteres não ASCII aceitos dentro de string e comentário.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": true
+      },
+      "criterios": [
+        "C1",
+        "C5"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-14",
+      "categoria": "erro léxico",
+      "titulo": "Caractere não reconhecido",
+      "entrada": "total = 2 $ 1\n",
+      "analise": [
+        "léxica"
+      ],
+      "resultado_esperado": "Erro léxico na linha 1 apontando '$'; parser não executado, com motivo.",
+      "esperado": {
+        "lexico_sucesso": false,
+        "erros_lexicos": [
+          "caractere_nao_reconhecido"
+        ],
+        "sintatico_executado": false
+      },
+      "criterios": [
+        "C3"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-15",
+      "categoria": "erro léxico",
+      "titulo": "Identificador com acento",
+      "entrada": "preço = 10\n",
+      "analise": [
+        "léxica"
+      ],
+      "resultado_esperado": "Erro léxico: o subconjunto só aceita identificadores ASCII.",
+      "esperado": {
+        "lexico_sucesso": false,
+        "erros_lexicos": [
+          "identificador_com_caractere_nao_ascii"
+        ],
+        "sintatico_executado": false
+      },
+      "criterios": [
+        "C3"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-16",
+      "categoria": "erro léxico",
+      "titulo": "String não fechada",
+      "entrada": "m = \"sem fechar\n",
+      "analise": [
+        "léxica"
+      ],
+      "resultado_esperado": "Erro léxico na linha 1, coluna da aspa de abertura.",
+      "esperado": {
+        "lexico_sucesso": false,
+        "erros_lexicos": [
+          "string_nao_fechada"
+        ],
+        "sintatico_executado": false
+      },
+      "criterios": [
+        "C3"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-17",
+      "categoria": "erro léxico",
+      "titulo": "Operador fora do subconjunto",
+      "entrada": "x = 7 // 2\n",
+      "analise": [
+        "léxica"
+      ],
+      "resultado_esperado": "Erro léxico: '//' existe em Python, mas não no subconjunto.",
+      "esperado": {
+        "lexico_sucesso": false,
+        "erros_lexicos": [
+          "operador_fora_do_subconjunto"
+        ],
+        "sintatico_executado": false
+      },
+      "criterios": [
+        "C3"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-18",
+      "categoria": "erro léxico",
+      "titulo": "Parêntese não fechado",
+      "entrada": "x = (1 + 2\n",
+      "analise": [
+        "léxica"
+      ],
+      "resultado_esperado": "Erro léxico: o scanner controla o balanceamento de parênteses (junção implícita de linhas).",
+      "esperado": {
+        "lexico_sucesso": false,
+        "erros_lexicos": [
+          "parentese_nao_fechado"
+        ],
+        "sintatico_executado": false
+      },
+      "criterios": [
+        "C3"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-19",
+      "categoria": "erro léxico",
+      "titulo": "Recuo que não volta a um nível anterior",
+      "entrada": "if x:\n        a = 1\n    b = 2\n",
+      "analise": [
+        "léxica"
+      ],
+      "resultado_esperado": "Erro léxico na linha 3: o recuo não corresponde a nenhum nível aberto.",
+      "esperado": {
+        "lexico_sucesso": false,
+        "erros_lexicos": [
+          "indentacao_inconsistente"
+        ],
+        "sintatico_executado": false
+      },
+      "criterios": [
+        "C3"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-20",
+      "categoria": "erro léxico",
+      "titulo": "Tabulação misturada com espaços",
+      "entrada": "if x:\n\ta = 1\n        b = 2\n",
+      "analise": [
+        "léxica"
+      ],
+      "resultado_esperado": "Erro léxico na linha 2: tabulação na indentação.",
+      "esperado": {
+        "lexico_sucesso": false,
+        "erros_lexicos": [
+          "indentacao_com_tabulacao"
+        ],
+        "sintatico_executado": false
+      },
+      "criterios": [
+        "C3"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-21",
+      "categoria": "erro léxico",
+      "titulo": "Vários erros léxicos (exemplo da interface)",
+      "entrada": "# Programa com erros léxicos\npreço = 10\ntotal = preço * 2 $ 1\nmensagem = \"sem fechar\nif total >= 20:\n    print(total // 2)\n",
+      "analise": [
+        "léxica"
+      ],
+      "resultado_esperado": "Cinco erros léxicos; o scanner continua depois de cada um; parser não executado.",
+      "esperado": {
+        "lexico_sucesso": false,
+        "erros_lexicos": [
+          "identificador_com_caractere_nao_ascii",
+          "identificador_com_caractere_nao_ascii",
+          "caractere_nao_reconhecido",
+          "string_nao_fechada",
+          "operador_fora_do_subconjunto"
+        ],
+        "sintatico_executado": false
+      },
+      "criterios": [
+        "C3",
+        "C4"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-22",
+      "categoria": "erro sintático",
+      "titulo": "Operando ausente",
+      "entrada": "x = 5 +\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "Erro sintático na linha 1; esperado um valor depois de '+'; regra soma.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": false,
+        "erros_sintaticos": [
+          "operando_ausente"
+        ],
+        "regra": "soma"
+      },
+      "criterios": [
+        "C3"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-23",
+      "categoria": "erro sintático",
+      "titulo": "Dois-pontos ausente no if",
+      "entrada": "x = 10\nif x > 5\n    print(\"x\")\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "Erro na linha 2: esperado ':'; regra condicional; recuperação por inserção sem erro em cascata no bloco.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": false,
+        "erros_sintaticos": [
+          "dois_pontos_ausente"
+        ],
+        "regra": "condicional"
+      },
+      "criterios": [
+        "C3",
+        "C4"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-24",
+      "categoria": "erro sintático",
+      "titulo": "else sem if",
+      "entrada": "else:\n    x = 1\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "Erro na linha 1: else sem if correspondente.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": false,
+        "erros_sintaticos": [
+          "else_sem_if"
+        ]
+      },
+      "criterios": [
+        "C3"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-25",
+      "categoria": "erro sintático",
+      "titulo": "Atribuição a literal",
+      "entrada": "5 = x\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "Erro: só um nome pode receber valor.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": false,
+        "erros_sintaticos": [
+          "atribuicao_invalida"
+        ],
+        "regra": "atribuicao"
+      },
+      "criterios": [
+        "C3"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-26",
+      "categoria": "erro sintático",
+      "titulo": "Operadores consecutivos",
+      "entrada": "x = 5 + * 2\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "Erro na coluna 9: dois operadores seguidos.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": false,
+        "erros_sintaticos": [
+          "operadores_consecutivos"
+        ]
+      },
+      "criterios": [
+        "C3"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-27",
+      "categoria": "erro sintático",
+      "titulo": "Argumento ausente após vírgula",
+      "entrada": "print(a,)\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "Erro: esperado um argumento depois de ','.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": false,
+        "erros_sintaticos": [
+          "argumento_ausente"
+        ],
+        "regra": "argumentos"
+      },
+      "criterios": [
+        "C3"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-28",
+      "categoria": "erro sintático",
+      "titulo": "Comparação encadeada",
+      "entrada": "ok = a < b < c\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "Erro: a comparação é não associativa no subconjunto.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": false,
+        "erros_sintaticos": [
+          "comparacao_encadeada"
+        ],
+        "regra": "comparacao"
+      },
+      "criterios": [
+        "C3"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-29",
+      "categoria": "erro sintático",
+      "titulo": "Bloco sem recuo",
+      "entrada": "if x:\ny = 1\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "Erro na linha 2: esperado INDENT (bloco recuado).",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": false,
+        "erros_sintaticos": [
+          "bloco_ausente"
+        ],
+        "regra": "bloco"
+      },
+      "criterios": [
+        "C3"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-30",
+      "categoria": "erro sintático",
+      "titulo": "Atribuição usada como condição",
+      "entrada": "if x = 1:\n    y = 2\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "Erro: '=' na condição; sugere '=='.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": false,
+        "erros_sintaticos": [
+          "atribuicao_na_condicao"
+        ]
+      },
+      "criterios": [
+        "C3"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-31",
+      "categoria": "erro sintático",
+      "titulo": "Construção fora do subconjunto (for)",
+      "entrada": "for i in x:\n    print(i)\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "Aviso léxico (palavra reservada fora do subconjunto) e erro sintático; regra instrucao.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": false,
+        "erros_sintaticos": [
+          "palavra_fora_do_subconjunto"
+        ],
+        "avisos_lexicos": true
+      },
+      "criterios": [
+        "C3"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-32",
+      "categoria": "erro sintático",
+      "titulo": "Fim do código antes do bloco",
+      "entrada": "while x < 3:\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "Erro: o código terminou antes do bloco do while.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": false,
+        "erros_sintaticos": [
+          "fim_inesperado"
+        ],
+        "regra": "bloco"
+      },
+      "criterios": [
+        "C3"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-33",
+      "categoria": "erro sintático",
+      "titulo": "Vários erros com recuperação (exemplo da interface)",
+      "entrada": "# Programa com erros sintáticos\ntotal = 10 +\nif total > 5\n    print(\"maior\", total)\nelif:\n    print(\"menor\")\n5 = total\n",
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "Quatro erros, nas linhas 2, 3, 5 e 7, sem erros em cascata; AST nula.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": false,
+        "erros_sintaticos": [
+          "operando_ausente",
+          "dois_pontos_ausente",
+          "condicao_ausente",
+          "atribuicao_invalida"
+        ]
+      },
+      "criterios": [
+        "C3",
+        "C4"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-34",
+      "categoria": "erro semântico (previsto)",
+      "titulo": "Variável usada sem atribuição",
+      "entrada": "print(y)\n",
+      "analise": [
+        "léxica",
+        "sintática",
+        "semântica"
+      ],
+      "resultado_esperado": "Etapa 5: erro semântico 'y' não definida; a tabela de símbolos não contém 'y'. Hoje: aceito pelas análises léxica e sintática.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": true
+      },
+      "criterios": [
+        "C6"
+      ],
+      "status": "previsto_etapa5"
+    },
+    {
+      "id": "CT-35",
+      "categoria": "erro semântico (previsto)",
+      "titulo": "Chamada de função não definida",
+      "entrada": "soma(1, 2)\n",
+      "analise": [
+        "léxica",
+        "sintática",
+        "semântica"
+      ],
+      "resultado_esperado": "Etapa 5: erro semântico 'soma' não é função conhecida (apenas funções embutidas previstas). Hoje: aceito sintaticamente.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": true
+      },
+      "criterios": [
+        "C6"
+      ],
+      "status": "previsto_etapa5"
+    },
+    {
+      "id": "CT-36",
+      "categoria": "erro semântico (previsto)",
+      "titulo": "Tipos incompatíveis em operação",
+      "entrada": "x = \"a\" - 1\n",
+      "analise": [
+        "léxica",
+        "sintática",
+        "semântica"
+      ],
+      "resultado_esperado": "Etapa 5: erro semântico, '-' entre texto e número. Hoje: aceito sintaticamente.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": true
+      },
+      "criterios": [
+        "C6"
+      ],
+      "status": "previsto_etapa5"
+    },
+    {
+      "id": "CT-37",
+      "categoria": "erro semântico (previsto)",
+      "titulo": "Variável definida em apenas um ramo",
+      "entrada": "if a > 0:\n    b = 1\nprint(b)\n",
+      "analise": [
+        "léxica",
+        "sintática",
+        "semântica"
+      ],
+      "resultado_esperado": "Etapa 5: 'a' não definida (erro) e 'b' possivelmente não definida (aviso). Hoje: aceito sintaticamente.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": true
+      },
+      "criterios": [
+        "C6"
+      ],
+      "status": "previsto_etapa5"
+    },
+    {
+      "id": "CT-38",
+      "categoria": "erro semântico (previsto)",
+      "titulo": "Divisão por zero literal",
+      "entrada": "x = 10 / 0\n",
+      "analise": [
+        "léxica",
+        "sintática",
+        "semântica"
+      ],
+      "resultado_esperado": "Etapa 5: aviso de divisão por zero detectável em tempo de compilação. Hoje: aceito sintaticamente.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": true
+      },
+      "criterios": [
+        "C6"
+      ],
+      "status": "previsto_etapa5"
+    },
+    {
+      "id": "CT-39",
+      "categoria": "caso de borda",
+      "titulo": "Entrada vazia (API)",
+      "entrada": "",
+      "analise": [
+        "validação"
+      ],
+      "resultado_esperado": "HTTP 400 com mensagem 'Informe um código-fonte…'; nenhuma análise executada.",
+      "esperado": {
+        "http": 400,
+        "tipo": "entrada_vazia"
+      },
+      "criterios": [
+        "C5"
+      ],
+      "status": "implementado",
+      "via": "api"
+    },
+    {
+      "id": "CT-40",
+      "categoria": "caso de borda",
+      "titulo": "Entrada só com espaços e quebras (API)",
+      "entrada": "   \n\n  ",
+      "analise": [
+        "validação"
+      ],
+      "resultado_esperado": "HTTP 400 com mensagem sobre código só com espaços.",
+      "esperado": {
+        "http": 400,
+        "tipo": "entrada_em_branco"
+      },
+      "criterios": [
+        "C5"
+      ],
+      "status": "implementado",
+      "via": "api"
+    },
+    {
+      "id": "CT-41",
+      "categoria": "caso de borda",
+      "titulo": "Entrada acima de 20 000 caracteres (API)",
+      "gerador": {
+        "tipo": "repetir",
+        "texto": "x = 1\n",
+        "vezes": 3334
+      },
+      "analise": [
+        "validação"
+      ],
+      "resultado_esperado": "HTTP 413; o limite é informado ao estudante.",
+      "esperado": {
+        "http": 413,
+        "tipo": "entrada_muito_grande"
+      },
+      "criterios": [
+        "C5"
+      ],
+      "status": "implementado",
+      "via": "api"
+    },
+    {
+      "id": "CT-42",
+      "categoria": "caso de borda",
+      "titulo": "Parênteses aninhados dentro do limite",
+      "gerador": {
+        "tipo": "aninhar",
+        "prefixo": "x = ",
+        "abre": "(",
+        "miolo": "1",
+        "fecha": ")",
+        "sufixo": "\n",
+        "n": 25
+      },
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "Aceito; AST com o literal no fundo.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": true
+      },
+      "criterios": [
+        "C5"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-43",
+      "categoria": "caso de borda",
+      "titulo": "Aninhamento excessivo (300 parênteses)",
+      "gerador": {
+        "tipo": "aninhar",
+        "prefixo": "x = ",
+        "abre": "(",
+        "miolo": "1",
+        "fecha": ")",
+        "sufixo": "\n",
+        "n": 300
+      },
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "Erro controlado 'aninhamento_excessivo' (limite de 200 regras abertas), sem estouro de pilha nem HTTP 500.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": false,
+        "erros_sintaticos": [
+          "aninhamento_excessivo"
+        ]
+      },
+      "criterios": [
+        "C5"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-44",
+      "categoria": "caso de borda",
+      "titulo": "Mais de 50 erros sintáticos",
+      "gerador": {
+        "tipo": "repetir",
+        "texto": "x = 5 +\n",
+        "vezes": 55
+      },
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "Exatamente 50 erros relatados (limite), sem travamento.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": false,
+        "erros_sintaticos": [
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente",
+          "operando_ausente"
+        ]
+      },
+      "criterios": [
+        "C4",
+        "C5"
+      ],
+      "status": "implementado"
+    },
+    {
+      "id": "CT-45",
+      "categoria": "caso de borda",
+      "titulo": "Programa longo (1 500 linhas)",
+      "gerador": {
+        "tipo": "repetir",
+        "texto": "x = x + 1\n",
+        "vezes": 1500
+      },
+      "analise": [
+        "léxica",
+        "sintática"
+      ],
+      "resultado_esperado": "Aceito; AST completa; passo a passo limitado a 20 000 passos e marcado como truncado.",
+      "esperado": {
+        "lexico_sucesso": true,
+        "sintatico_executado": true,
+        "sintatico_sucesso": true,
+        "passos_truncados": true
+      },
+      "criterios": [
+        "C5"
+      ],
+      "status": "implementado"
+    }
+  ]
+}

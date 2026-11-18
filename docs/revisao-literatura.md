@@ -11,7 +11,7 @@ O software proposto é um visualizador interativo, voltado a graduandos de Ciên
 A linguagem-alvo é **Python**, escolhida por três razões:
 
 - É a linguagem com que muitos estudantes iniciam a graduação, o que reduz a barreira de entrada: o aluno analisa um código que já sabe ler.
-- Sua sintaxe enxuta permite definir um subconjunto pequeno (atribuições, expressões, `if`, `while`, `def`) sem perder realismo.
+- Sua sintaxe enxuta permite definir um subconjunto pequeno (atribuições, expressões, `if`, `while`) sem perder realismo. *(Revisão da Tarefa 4: `def` ficou fora do subconjunto implementado; ver seção 6.)*
 - Python tem uma particularidade léxica pouco explorada no ensino: a indentação gera os tokens `INDENT` e `DEDENT`, o que torna a análise léxica mais interessante do que em linguagens delimitadas por chaves.
 
 O próprio software também será implementado em Python, com interface web, aproveitando os módulos nativos `tokenize` e `ast` como referência para validar os resultados exibidos.
@@ -26,7 +26,7 @@ O próprio software também será implementado em Python, com interface web, apr
 | Tipo de ferramenta | Visualizador interativo |
 | Abordagem | Híbrida: breve explicação teórica seguida de prática guiada |
 
-O aluno digita o próprio código, avança e retrocede cada passo da análise e observa o estado do autômato, a lista de tokens e o crescimento da árvore. Erros inseridos pelo aluno são destacados no ponto exato em que foram detectados.
+O aluno digita o próprio código, avança e retrocede cada passo da análise e observa as decisões do scanner e a pilha de indentação, a lista de tokens e o crescimento da árvore. *(Revisão da Tarefa 4: o autômato não é desenhado; ver seção 6.)* Erros inseridos pelo aluno são destacados no ponto exato em que foram detectados.
 
 ---
 
@@ -122,6 +122,49 @@ Os artigos estão disponíveis nos links abaixo. O Anexo B é de acesso pago (Sp
 | B | Sangal et al. (2018) — [página do artigo](https://doi.org/10.1007/s10639-018-9739-x) | Portal de Periódicos CAPES / rede da instituição |
 | C | Borela et al. (2025) — [PDF](https://sol.sbc.org.br/index.php/wei/article/download/36164/35951) | Aberto |
 
+
+---
+
+## 6. Atualização da Tarefa 4 — novos artigos, quadro e revisões
+
+A Tarefa 4 acrescentou três trabalhos, lidos no texto integral e anexados ao PDF da entrega:
+
+| # | Trabalho | Por que foi incluído |
+| --- | --- | --- |
+| 8 | AALVIK; JÄRVI (2019), VisAST | Primeira ferramenta da amostra que mostra explicitamente uma AST (web, passos de avaliação); avaliação com 79 estudantes, sem grupo de controle |
+| 9 | LEINONEN et al. (2023) | Explicações de mensagens de erro do Python geradas por modelo de linguagem: 88% compreensíveis, mas só 48% corretas; fundamenta o assistente de IA e o critério C9 |
+| 10 | ORTIN et al. (2022) | Experimento com 183 estudantes em grupos aleatórios (Lex/Yacc × ANTLR); fundamenta a decisão de não usar gerador e o desenho do questionário |
+
+### Quadro comparativo atualizado
+
+Legenda: ✓ presente com evidência; ✗ ausente com evidência; NI não informado; N/A não se aplica; P previsto. As notas e as páginas de cada marcação estão no PDF da Tarefa 4.
+
+| # | Trabalho | Web | Entrada | Exemplos | Léxica | Sintática | Árvore | Semântica | Tab. símbolos | Geração | Passo a passo | Diagnósticos | Explicações | Avaliação | Aprendizagem |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | Graciano Junior et al. (2022) | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ᵃ | ✗ | NI | ✗ | ✓ | ✓ | ✓ | ✓ | ✗ |
+| 2 | Sangal et al. (2018), PAVT | ✗ | ✓ | NI | NI | ✓ | ✓ᵃ | NI | NI | NI | ✓ | NI | ✓ | ✓ | NI |
+| 3 | Borela et al. (2025) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ᵃ | NI | ✓ | ✓ | ✗ | NI | NI | ✓ | ✗ |
+| 4 | Golemanov e Golemanova (2020), LP_Tools | NI | ✓ | ✓ | ✓ | ✓ | ✓ᵃ | ✓ | ✓ | ✓ | ✓ | ✓ | NI | ✓ | ✗ |
+| 5 | Del Vado Vírseda (2023), ITT | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ᵃ | NI | NI | NI | ✓ | ✓ | NI | ✓ | ✓ |
+| 6 | Almeida-Martínez et al. (2009), VAST | ✗ | ✓ | NI | ✗ | ✓ | ✓ᵃ | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ | ✓ | ✓ |
+| 7 | Conejo Muñoz et al. (2024), SIETTE | ✓ | ✗ | N/A | ✗ | ✓ | NI | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ |
+| 8 | Aalvik e Järvi (2019), VisAST | ✓ | ✓ | NI | ✗ | ✓ | ✓ (AST) | ✗ | NI | NI | ✓ | NI | NI | ✓ | ✓ |
+| 9 | Leinonen et al. (2023), estudo | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | ✓ | ✓ | ✗ | ✗ |
+| 10 | Ortin et al. (2022), estudo | N/A | N/A | N/A | ✓ | ✓ | ✓ (AST) | ✓ | NI | ✓ | NI | NI | N/A | ✓ | ✓ |
+| — | **Proposta (v0.4.0)** | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (AST e derivação) | P | P | ✗ | ✓ | ✓ | ✓ | P | ✗ |
+
+ᵃ árvore de derivação ou concreta.
+
+### Revisões de afirmações anteriores
+
+- "Nenhum artigo apresenta uma AST" (Tarefa 3): válido só para os sete primeiros trabalhos; o VisAST mostra ASTs. O diferencial passa a ser AST **e** árvore de derivação do mesmo programa, ligadas à construção pelo parser.
+- "Nenhum trabalho usa explicações geradas por modelo de linguagem" (Trabalho 4): Leinonen et al. (2023) fazem isso para mensagens de erro do Python; a lacuna se restringe ao contexto estruturado (nó, regra, esperado) dentro de um visualizador.
+- Borela et al. (2025) "não explica as regras violadas": não informado (NI), não ausente.
+- Linha da proposta: léxica, sintática, árvore, passo a passo e diagnósticos passaram a ✓ (implementados); resultados de aprendizagem passaram a ✗, porque o plano mede percepção.
+- Seção 1 deste documento: `def` saiu do subconjunto, e o passo a passo léxico não desenha o autômato.
+
+A proposta completa, com o método de avaliação, está em [`materiais-e-metodos.md`](materiais-e-metodos.md).
+
 ---
 
 ## Referências
@@ -131,3 +174,11 @@ BORELA, E. P. S.; OLIVEIRA, A. L.; CASTELLO BRANCO NETO, W.; SOUZA, A. P. Uma Fe
 GRACIANO JUNIOR, W.; GROSSERT, I. T. S.; CASTELLO BRANCO NETO, W.; AVILA, A. J. Ferramenta Interativa para o ensino de compiladores. In: SIMPÓSIO BRASILEIRO DE EDUCAÇÃO EM COMPUTAÇÃO (EDUCOMP), 2., 2022, on-line. *Anais* [...]. Porto Alegre: SBC, 2022. p. 224–233.
 
 SANGAL, S.; KATARIA, S.; TYAGI, T. et al. PAVT: a tool to visualize and teach parsing algorithms. *Education and Information Technologies*, v. 23, p. 2737–2764, 2018. DOI: 10.1007/s10639-018-9739-x.
+
+AALVIK, R.; JÄRVI, J. VisAST: generic AST visualiser for software language education. In: NORSK IKT-KONFERANSE FOR FORSKNING OG UTDANNING (NIKT), 2019, Narvik. *Proceedings* [...]. Trondheim: Bibsys Open Journal Systems, 2019. Disponível em: https://ntnu.no/ojs/index.php/nikt/article/view/5732.
+
+LEINONEN, J.; HELLAS, A.; SARSA, S.; REEVES, B.; DENNY, P.; PRATHER, J.; BECKER, B. A. Using large language models to enhance programming error messages. In: SIGCSE TS, 54., 2023, Toronto. *Proceedings* [...]. New York: ACM, 2023. v. 1, p. 563–569. DOI: 10.1145/3545945.3569770.
+
+ORTIN, F.; QUIROGA, J.; RODRIGUEZ-PRIETO, O.; GARCIA, M. An empirical evaluation of Lex/Yacc and ANTLR parser generation tools. *PLOS ONE*, v. 17, n. 3, e0264326, 2022. DOI: 10.1371/journal.pone.0264326.
+
+*As referências dos artigos 4 a 7 (Tarefas 2 e 3) estão em [`materiais-e-metodos.md`](materiais-e-metodos.md) e nos PDFs das tarefas.*

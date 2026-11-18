@@ -2,6 +2,18 @@
 
 Registro das execuções de teste do projeto, em ordem cronológica. Cada etapa traz o que foi testado, os comandos usados, os resultados, as falhas encontradas e o que ainda falta.
 
+## Tarefa 4 — Casos de teste documentados (18/11/2026)
+
+**Ambiente:** Linux, Python 3.13. Foi criada a suíte `backend/tests/test_casos_de_teste.py`, que executa os 45 casos de [`casos-de-teste.md`](casos-de-teste.md) a partir de `backend/tests/casos_de_teste.json`.
+
+| Comando | Resultado |
+| --- | --- |
+| `cd backend && python -m unittest tests.test_casos_de_teste -v` | 5 testes: 4 aprovados (40 casos verificados como subtestes), 1 ignorado (verificação semântica, Etapa 5) |
+| `cd backend && python -m unittest discover -s tests -t .` | 212 testes: 211 aprovados, 1 ignorado |
+| `python scripts/casos_de_teste.py --checar` | documento atualizado |
+
+Ao escrever os casos, dois comportamentos foram confirmados e registrados como esperado: `x = (1 + 2` sem fechar é **erro léxico** (`parentese_nao_fechado`, o scanner controla os parênteses), e não sintático; e 300 parênteses aninhados produzem o erro controlado `aninhamento_excessivo`.
+
 ## Etapa 4 — Análise sintática e AST (18/11/2026)
 
 **Ambiente das execuções:** Linux, Python 3.13, Starlette 1.6.0, Uvicorn 0.53.0, Node.js 22, Playwright 1.56.0 com Chromium, servidor local `tests/e2e/servidor_local.py` (frontend + backend real, sem Ollama). A execução no Docker é feita no Windows com `scripts\testar.ps1` e `scripts\testar-ia.ps1`, e fica registrada abaixo, em seções próprias.

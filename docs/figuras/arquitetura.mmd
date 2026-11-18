@@ -1,0 +1,28 @@
+%% Diagrama de componentes (Tarefa 4). Tracejado: pendente (Etapa 5) ou opcional.
+flowchart TB
+    subgraph NAV["Navegador do estudante — computador ou celular"]
+      UI["Interface — HTML, CSS, JS (módulos ES, sem build)<br/>editor · 7 exemplos · tabela de tokens · árvore AST/derivação ·<br/>passo a passo · lista de erros · painel do assistente"]
+      CLI["api.js — cliente HTTP: valida a entrada antes de enviar"]
+      UI --- CLI
+    end
+    CLI -->|"HTTP + JSON: POST /api/analisar · POST /api/ia/explicar · GET /api/ia/status"| NG
+    subgraph DC["Docker Compose — máquina local"]
+      NG["frontend — Nginx 1.27 · porta 8080 publicada<br/>arquivos estáticos + proxy de /api"]
+      subgraph BE["backend — Python 3.12 · Starlette 1.6 · Uvicorn 0.53 · porta 8000 interna"]
+        VAL["validacao.py<br/>JSON, vazio, limite"] --> SC["scanner.py<br/>análise léxica"] --> PA["parser.py<br/>análise sintática + AST"]
+        PA -.-> SE["semântica + tabela de símbolos<br/>Etapa 5 — pendente"]
+        PA --> IA["ia.py — contexto montado<br/>com os resultados reais"]
+      end
+      NG -->|"/api/*"| VAL
+      IA -.->|"POST /api/chat"| OL["ollama — Llama 3.2 3B<br/>porta 11434 interna · volume ollama_data"]
+    end
+    subgraph T["Perfil testes (docker compose --profile testes)"]
+      T1["testes-backend — unittest"]
+      T2["testes-frontend — node --test"]
+      T3["testes-e2e — Playwright + Chromium"]
+    end
+    T3 -.->|"http://frontend"| NG
+    classDef pendente fill:#eeeeee,stroke:#777,stroke-dasharray:6 4,color:#444
+    classDef opcional stroke-dasharray:4 3
+    class SE pendente
+    class OL,IA opcional
