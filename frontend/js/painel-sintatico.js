@@ -22,7 +22,7 @@ import {
 const INTERVALO_REPRODUCAO_MS = 700;
 const EXPANDIR_TUDO_ATE = 400; // nós; acima disso a árvore abre só os primeiros níveis
 
-export function iniciarPainelSintatico(raiz, { selecionarNoEditor, aoSelecionarNo } = {}) {
+export function iniciarPainelSintatico(raiz, { selecionarNoEditor, aoSelecionarNo, explicarNo } = {}) {
   const doc = raiz.ownerDocument;
   const $ = (s) => raiz.querySelector(s);
   const el = {
@@ -382,14 +382,26 @@ export function iniciarPainelSintatico(raiz, { selecionarNoEditor, aoSelecionarN
             ? `A sequência de ${tokens.length} tokens virou ${achatar(no).length} nó(s) na AST: parênteses, ':' e fins de linha não precisam de nó, porque a própria forma da árvore já guarda essa informação.`
             : "Este nó corresponde diretamente a um token.",
       }),
-      criar("button", {
-        type: "button",
-        className: "botao-texto",
-        textContent: "Selecionar no editor",
-        onclick: () => selecionarNoEditor && selecionarNoEditor(no),
-      }),
+      criar(
+        "div",
+        { className: "acoes-no" },
+        criar("button", {
+          type: "button",
+          className: "botao-texto",
+          textContent: "Selecionar no editor",
+          onclick: () => selecionarNoEditor && selecionarNoEditor(no),
+        }),
+        explicarNo
+          ? criar("button", {
+              type: "button",
+              className: "botao-texto botao-ia",
+              id: "explicar-no",
+              textContent: "Explicar este nó com IA",
+              onclick: () => explicarNo(no),
+            })
+          : null,
+      ),
     );
-    if (raiz.querySelector("#explicar-no")) raiz.querySelector("#explicar-no").hidden = false;
   }
 
   // Teclado na árvore (padrão WAI-ARIA para tree view).

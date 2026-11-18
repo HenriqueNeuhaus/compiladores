@@ -5,6 +5,7 @@
 import { contarTexto, validarCodigo } from "./validacao.js";
 import { CATEGORIAS, normalizarQuebras, resumoContagem, rotuloLexema, segmentarCodigo } from "./lexico.js";
 import { iniciarPainelSintatico } from "./painel-sintatico.js";
+import { iniciarAssistente } from "./assistente-ia.js";
 import { textoEncontrado, textoEsperado } from "./sintatico.js";
 
 const TITULOS = {
@@ -19,7 +20,7 @@ const TITULOS = {
 
 const INTERVALO_REPRODUCAO_MS = 900;
 
-export function iniciarInterface(raiz, { enviar, exemplos }) {
+export function iniciarInterface(raiz, { enviar, exemplos, explicar, consultarStatusIA }) {
   const doc = raiz.ownerDocument;
   const $ = (seletor) => raiz.querySelector(seletor);
   const el = {
@@ -130,8 +131,26 @@ export function iniciarInterface(raiz, { enviar, exemplos }) {
     el.codigo.setSelectionRange(ini, Math.min(fim, el.codigo.value.length));
   }
 
+  // Assistente de IA (opcional): só existe se as funções de IA forem fornecidas.
+  const assistente = explicar && raiz.querySelector("#assistente-ia")
+    ? iniciarAssistente(raiz, { explicar, consultarStatus: consultarStatusIA })
+    : null;
+  if (!assistente && raiz.querySelector("#assistente-ia")) raiz.querySelector("#assistente-ia").hidden = true;
+  assistente?.atualizarStatus();
+
   // Painel da análise sintática (AST, derivação e passo a passo do parser).
-  const painel = iniciarPainelSintatico(raiz, { selecionarNoEditor });
+  const painel = iniciarPainelSintatico(raiz, {
+    selecionarNoEditor,
+    explicarNo: assistente ? (no) => assistente.explicarNo(no) : null,
+  });
+
+  const botaoExplicarToken = raiz.querySelector("#explicar-token");
+  botaoExplicarToken?.addEventListener("click", () => {
+    const passo = analise?.passos[atual];
+    if (!assistente || !passo || passo.token === undefined || passo.token === null) return;
+    const token = analise.tokens[passo.token];
+    assistente.explicarToken(passo.token, rotuloLexema(token));
+  });
 
   el.limpar.addEventListener("click", () => {
     el.codigo.value = "";
@@ -268,13 +287,14 @@ export function iniciarInterface(raiz, { enviar, exemplos }) {
                 selecionarNoEditor(erro);
               },
             }),
-            criar("button", {
-              type: "button",
-              className: "botao-texto botao-ia",
-              textContent: "Entender erro com IA",
-              hidden: true,
-              dataset: { erro: String(i) },
-            }),
+            assistente
+              ? criar("button", {
+                  type: "button",
+                  className: "botao-texto botao-ia",
+                  textContent: "Entender erro com IA",
+                  onclick: () => assistente.explicarErro(i, erro),
+                })
+              : null,
           ),
         ),
       ),
@@ -380,6 +400,7 @@ export function iniciarInterface(raiz, { enviar, exemplos }) {
     el.contadorPasso.textContent = `Passo ${atual + 1} de ${total}`;
     el.descricaoPasso.textContent = passo.descricao;
     el.descricaoPasso.dataset.tipo = passo.tipo;
+    if (botaoExplicarToken) botaoExplicarToken.hidden = !assistente || passo.token === undefined || passo.token === null;
     el.pilha.replaceChildren(
       ...passo.pilha.map((nivel) => criar("li", { textContent: String(nivel), title: `${nivel} espaços` })),
     );
@@ -495,6 +516,7 @@ export function iniciarInterface(raiz, { enviar, exemplos }) {
             return analise?.passoDoToken.get(indiceToken);
           }),
         );
+        assistente?.definirCodigo(normalizarQuebras(codigo));
         mostrarAnalise(normalizarQuebras(codigo), dados);
         if (sint) painel.mostrar(normalizarQuebras(codigo), dados);
         else painel.ocultar();

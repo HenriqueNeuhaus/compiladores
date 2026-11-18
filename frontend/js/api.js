@@ -66,3 +66,70 @@ export async function enviarCodigo(codigo, opcoes = {}) {
   // sem repassar detalhes técnicos ao estudante.
   return { tipo: "inesperado", mensagem: MENSAGENS.inesperado };
 }
+
+// ---------------------------------------------------------------------------
+// Assistente de IA (Etapa 4, diferencial). O navegador fala só com o backend;
+// o backend é quem consulta o Ollama.
+// ---------------------------------------------------------------------------
+
+export const URL_IA_STATUS = "/api/ia/status";
+export const URL_IA_EXPLICAR = "/api/ia/explicar";
+export const TEMPO_LIMITE_IA_MS = 240000; // modelos no processador podem demorar
+
+export const MENSAGENS_IA = {
+  comunicacao: "Não foi possível falar com o servidor para obter a explicação. A análise continua disponível.",
+  inesperado: "O assistente de IA não conseguiu responder agora. Tente novamente.",
+  cancelado: "Pedido de explicação cancelado.",
+};
+
+/** Consulta se o assistente está disponível. Nunca lança exceção. */
+export async function statusIA({ fetchImpl = globalThis.fetch, url = URL_IA_STATUS } = {}) {
+  try {
+    const resposta = await fetchImpl(url);
+    const dados = await resposta.json();
+    if (resposta.ok && dados && typeof dados.disponivel === "boolean") return dados;
+  } catch {
+    // servidor fora do ar: tratado abaixo
+  }
+  return { disponivel: false, mensagem: MENSAGENS_IA.comunicacao };
+}
+
+/**
+ * Pede uma explicação ao backend.
+ * corpo: {tipo: "token"|"no"|"erro"|"pergunta", codigo, referencia?, pergunta?}
+ * Devolve {tipo: "sucesso", dados} ou {tipo: "erro", mensagem}.
+ */
+export async function explicarIA(corpo, opcoes = {}) {
+  const { fetchImpl = globalThis.fetch, timeoutMs = TEMPO_LIMITE_IA_MS, url = URL_IA_EXPLICAR, sinal } = opcoes;
+  const controle = new AbortController();
+  const relogio = setTimeout(() => controle.abort("tempo"), timeoutMs);
+  const cancelar = () => controle.abort("cancelado");
+  sinal?.addEventListener("abort", cancelar);
+  let resposta;
+  try {
+    resposta = await fetchImpl(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(corpo),
+      signal: controle.signal,
+    });
+  } catch {
+    const cancelado = sinal?.aborted;
+    return { tipo: "erro", mensagem: cancelado ? MENSAGENS_IA.cancelado : MENSAGENS_IA.comunicacao, cancelado };
+  } finally {
+    clearTimeout(relogio);
+    sinal?.removeEventListener("abort", cancelar);
+  }
+  let dados = null;
+  try {
+    dados = await resposta.json();
+  } catch {
+    return { tipo: "erro", mensagem: MENSAGENS_IA.inesperado };
+  }
+  if (resposta.ok && dados && typeof dados.resposta === "string") return { tipo: "sucesso", dados };
+  // 422 e 503/504 trazem mensagens próprias e seguras do backend.
+  if (dados && dados.erro && typeof dados.erro.mensagem === "string" && resposta.status !== 500) {
+    return { tipo: "erro", mensagem: dados.erro.mensagem, erro: dados.erro.tipo };
+  }
+  return { tipo: "erro", mensagem: MENSAGENS_IA.inesperado };
+}

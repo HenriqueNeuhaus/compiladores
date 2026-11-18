@@ -22,7 +22,9 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 
-from . import parser, scanner
+from starlette.concurrency import run_in_threadpool
+
+from . import ia, parser, scanner
 from .validacao import LIMITE_CARACTERES, ErroValidacao, estatisticas, validar_corpo
 
 logger = logging.getLogger("compiladores")
@@ -124,6 +126,33 @@ async def analisar(request: Request) -> JSONResponse:
     )
 
 
+async def ia_status(request: Request) -> JSONResponse:
+    """Informa se o assistente de IA (Ollama) está disponível. Nunca falha:
+    a interface usa a resposta só para avisar o estudante."""
+    return JSONResponse(await run_in_threadpool(ia.status))
+
+
+async def ia_explicar(request: Request) -> JSONResponse:
+    corpo_bruto = await request.body()
+    if len(corpo_bruto) > LIMITE_BYTES:
+        erro = ErroValidacao("entrada_muito_grande", 413)
+        return resposta_erro(erro.tipo, erro.mensagem, erro.status)
+    try:
+        corpo = json.loads(corpo_bruto.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        erro = ErroValidacao("json_invalido", 400)
+        return resposta_erro(erro.tipo, erro.mensagem, erro.status)
+    try:
+        # A chamada ao modelo é bloqueante e pode demorar: roda fora do laço
+        # de eventos para não travar as análises de outros estudantes.
+        resultado = await run_in_threadpool(ia.explicar, corpo)
+    except ia.ErroIA as erro:
+        if erro.status >= 500:
+            logger.warning("Assistente de IA: %s", erro.tipo)
+        return resposta_erro(erro.tipo, erro.mensagem, erro.status)
+    return JSONResponse({"recebido": True, **resultado})
+
+
 async def erro_http(request: Request, exc: HTTPException) -> JSONResponse:
     """Rotas inexistentes (404) e métodos não permitidos (405) em JSON."""
     tipos = {
@@ -147,6 +176,8 @@ rotas = [
     Route("/api/health", health, methods=["GET"]),
     Route("/api/hello", hello, methods=["GET"]),
     Route("/api/analisar", analisar, methods=["POST"]),
+    Route("/api/ia/status", ia_status, methods=["GET"]),
+    Route("/api/ia/explicar", ia_explicar, methods=["POST"]),
 ]
 
 app = Starlette(

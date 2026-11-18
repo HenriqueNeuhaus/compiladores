@@ -737,6 +737,127 @@ class TestCelularSintatico(BaseInterface):
             contexto.close()
 
 
+# ---------------------------------------------------------------------------
+# Etapa 4 (diferencial): assistente de IA. As respostas do Ollama são
+# simuladas interceptando /api/ia/* no navegador; o backend real e o modelo
+# são testados em backend/tests/test_ia.py e em scripts/testar-ia.ps1.
+# ---------------------------------------------------------------------------
+
+RESPOSTA_IA = {
+    "recebido": True, "gerado_por_ia": True, "modelo": "llama3.2", "tipo": "no",
+    "pergunta": "Explique este nó.",
+    "resposta": "A **multiplicação** fica abaixo da adição.\n\nPor isso é calculada primeiro. <b>sem html</b>",
+    "contexto_enviado": {"no": {"tipo": "MULTIPLICACAO"}},
+    "aviso": "Explicação gerada por IA (Llama 3.2 via Ollama). Ela pode conter erros: "
+             "o resultado oficial é o do scanner e do parser.",
+}
+
+
+class TestAssistenteIA(BaseInterface):
+    def simular(self, resposta=None, status=200, disponivel=True):
+        self.pedidos_ia = []
+
+        def explicar(rota):
+            self.pedidos_ia.append(json.loads(rota.request.post_data))
+            rota.fulfill(status=status, json=resposta if resposta is not None else RESPOSTA_IA)
+
+        self.pagina.route("**/api/ia/status", lambda r: r.fulfill(json={
+            "disponivel": disponivel, "modelo": "llama3.2", "modelo_instalado": disponivel,
+            "mensagem": None if disponivel else "Modelo ausente."}))
+        self.pagina.route("**/api/ia/explicar", explicar)
+        self.pagina.reload()
+
+    def test_explicar_no_envia_a_referencia_e_mostra_a_resposta_identificada_como_ia(self):
+        self.simular()
+        expect(self.pagina.locator("#ia-status")).to_have_text("Disponível (modelo llama3.2)")
+        self.preencher("resultado = 10 + 5 * 2\n")
+        self.analisar_e_esperar("analise_ok")
+        no = self.pagina.locator('#arvore [data-tipo="MULTIPLICACAO"]')
+        no.locator(":scope > .no-linha").click()
+        id_no = int(no.get_attribute("data-id"))
+        self.pagina.get_by_role("button", name="Explicar este nó com IA").click()
+        expect(self.pagina.locator(".selo-ia")).to_contain_text("Gerado por IA (llama3.2)")
+        self.assertEqual(self.pedidos_ia, [{"codigo": "resultado = 10 + 5 * 2\n", "tipo": "no", "referencia": id_no}])
+        resposta = self.pagina.locator("#ia-resposta p")
+        expect(resposta).to_have_text(["A multiplicação fica abaixo da adição.",
+                                       "Por isso é calculada primeiro. <b>sem html</b>"])
+        self.assertEqual(self.pagina.locator("#ia-resposta b").count(), 0)
+        expect(self.pagina.locator(".ia-aviso")).to_contain_text("pode conter erros")
+        self.pagina.locator(".ia-contexto summary").click()
+        expect(self.pagina.locator(".ia-contexto pre")).to_contain_text("MULTIPLICACAO")
+
+    def test_entender_erro_sintatico_com_ia(self):
+        self.simular()
+        self.preencher("x = 1\nif x > 5\n    print(x)\n")
+        self.analisar_e_esperar("sintatico_erros")
+        self.pagina.get_by_role("button", name="Entender erro com IA").click()
+        expect(self.pagina.locator(".ia-alvo")).to_contain_text("Erro na linha 2")
+        expect(self.pagina.locator("#ia-resposta")).to_be_visible()
+        self.assertEqual(self.pedidos_ia[0]["tipo"], "erro")
+        self.assertEqual(self.pedidos_ia[0]["referencia"], 0)
+
+    def test_explicar_token_do_passo_a_passo(self):
+        self.simular()
+        self.preencher("resultado = 10\n")
+        self.analisar_e_esperar("analise_ok")
+        self.pagina.locator("#passo-inicio").click()
+        self.pagina.locator("#explicar-token").click()
+        expect(self.pagina.locator(".ia-alvo")).to_contain_text("Token resultado")
+        self.assertEqual(self.pedidos_ia[0], {"codigo": "resultado = 10\n", "tipo": "token", "referencia": 0})
+
+    def test_professor_virtual_pergunta_sugerida_e_livre(self):
+        self.simular()
+        self.pagina.locator(".chip-pergunta", has_text="Qual a diferença entre scanner e parser?").click()
+        expect(self.pagina.locator("#ia-resposta")).to_be_visible()
+        self.assertEqual(self.pedidos_ia[0]["tipo"], "pergunta")
+        self.assertEqual(self.pedidos_ia[0]["pergunta"], "Qual a diferença entre scanner e parser?")
+        self.pagina.locator("#ia-perguntar").click()  # pergunta vazia não é enviada
+        self.assertEqual(len(self.pedidos_ia), 1)
+        self.pagina.locator("#ia-pergunta").fill("O que é um não terminal?")
+        self.pagina.locator("#ia-pergunta").press("Enter")
+        expect(self.pagina.locator(".ia-alvo")).to_contain_text("O que é um não terminal?")
+        self.assertEqual(len(self.pedidos_ia), 2)
+
+    def test_ia_indisponivel_mostra_mensagem_e_a_analise_continua(self):
+        erro = {"recebido": False, "erro": {"tipo": "ia_indisponivel",
+                                            "mensagem": "O assistente de IA está indisponível."}}
+        self.simular(resposta=erro, status=503, disponivel=False)
+        expect(self.pagina.locator("#ia-status")).to_contain_text("Indisponível")
+        self.preencher("x = 1\n")
+        self.analisar_e_esperar("analise_ok")
+        self.pagina.locator(".chip-pergunta").first.click()
+        expect(self.pagina.locator(".ia-erro")).to_have_text("O assistente de IA está indisponível.")
+        expect(self.pagina.locator("#arvore")).to_be_visible()
+
+    def test_carregando_e_cancelar(self):
+        self.pagina.route("**/api/ia/explicar", lambda rota: None)  # nunca responde
+        self.pagina.reload()
+        self.pagina.locator(".chip-pergunta").first.click()
+        expect(self.pagina.locator(".ia-carregando")).to_contain_text("Gerando explicação")
+        expect(self.pagina.locator("#ia-saida")).to_have_attribute("aria-busy", "true")
+        expect(self.pagina.locator(".chip-pergunta").first).to_be_disabled()
+        self.pagina.locator("#ia-cancelar").click()
+        expect(self.pagina.locator(".ia-erro")).to_have_text("Pedido de explicação cancelado.")
+        expect(self.pagina.locator("#ia-saida")).to_have_attribute("aria-busy", "false")
+        expect(self.pagina.locator(".chip-pergunta").first).to_be_enabled()
+
+    def test_status_real_sem_ollama_nao_quebra_a_pagina(self):
+        # Sem simulação: o backend real responde (disponível ou não) e a
+        # página continua funcionando.
+        expect(self.pagina.locator("#ia-status")).not_to_have_text("Verificando o assistente…", timeout=10000)
+        self.preencher("x = 10 + 5 * 2\n")
+        self.analisar_e_esperar("analise_ok")
+
+    def test_navegador_so_conversa_com_o_backend(self):
+        urls = []
+        self.pagina.on("request", lambda r: urls.append(r.url))
+        self.simular()
+        self.pagina.locator(".chip-pergunta").first.click()
+        expect(self.pagina.locator("#ia-resposta")).to_be_visible()
+        self.assertFalse([u for u in urls if "11434" in u or "ollama" in u])
+        self.assertTrue(any(u.endswith("/api/ia/explicar") for u in urls))
+
+
 class TestApiPeloMesmoEndereco(unittest.TestCase):
     """A API responde pelo mesmo endereço da interface (proxy do frontend)."""
 

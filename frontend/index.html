@@ -100,6 +100,7 @@
         </div>
         <input type="range" id="passo-barra" min="0" max="0" value="0" aria-label="Escolher o passo">
         <p class="passo-descricao" id="passo-descricao" aria-live="polite"></p>
+        <button type="button" class="botao-texto botao-ia" id="explicar-token" hidden>Explicar este token com IA</button>
         <div class="pilha-area">
           <span class="pilha-rotulo" id="pilha-rotulo">Pilha de indentação</span>
           <ol class="pilha" id="pilha" aria-labelledby="pilha-rotulo"></ol>
@@ -203,6 +204,26 @@
             <div class="no-detalhes" id="no-detalhes" aria-live="polite"></div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="painel painel-analise painel-ia" id="assistente-ia" aria-labelledby="titulo-ia">
+      <div class="painel-topo">
+        <h2 id="titulo-ia">Assistente de IA (Llama 3.2)</h2>
+        <p class="ia-status" id="ia-status" data-disponivel="verificando" role="status">Verificando o assistente…</p>
+      </div>
+      <div class="ia-corpo">
+        <p class="ia-explicacao">O assistente explica os resultados do compilador. Ele <strong>não</strong> faz a análise: tokens, AST e erros vêm sempre do scanner e do parser deste projeto. Use os botões <em>Explicar com IA</em> no token do passo a passo, no nó selecionado da árvore ou em um erro sintático, ou faça uma pergunta abaixo. As respostas são geradas por IA e podem conter erros.</p>
+        <ul class="ia-sugestoes" id="ia-sugestoes" aria-label="Perguntas sugeridas"></ul>
+        <form class="ia-formulario" id="ia-formulario">
+          <label for="ia-pergunta">Sua pergunta ao professor virtual</label>
+          <div class="ia-entrada">
+            <input type="text" id="ia-pergunta" maxlength="500" autocomplete="off" placeholder="Ex.: o que é um símbolo não terminal?">
+            <button type="submit" class="botao-principal" id="ia-perguntar">Perguntar</button>
+            <button type="button" class="botao-secundario" id="ia-cancelar" hidden>Cancelar</button>
+          </div>
+        </form>
+        <div class="ia-saida" id="ia-saida" aria-live="polite"></div>
       </div>
     </section>
   </main>

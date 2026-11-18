@@ -9,6 +9,14 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    # Assistente de IA (diferencial da Etapa 4). O endereço é o nome do serviço
+    # "ollama" na rede interna do Compose; a porta 11434 não é publicada no host.
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODELO=llama3.2
+    depends_on:
+      ollama:
+        condition: service_started
     restart: unless-stopped
 
   frontend:
@@ -20,6 +28,18 @@ services:
       backend:
         condition: service_healthy
     restart: unless-stopped
+
+  # Ollama: executa o modelo Llama 3.2 usado pelo assistente de IA.
+  # O modelo fica no volume ollama_data e é baixado uma única vez com:
+  #   docker compose exec ollama ollama pull llama3.2
+  # Sem o modelo (ou com este serviço parado) a aplicação continua funcionando;
+  # só o assistente de IA informa que está indisponível.
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
 
   # ---------------------------------------------------------------------------
   # Serviços de teste: só são criados com --profile testes.
@@ -52,3 +72,6 @@ services:
       frontend:
         condition: service_healthy
     command: ["python", "-m", "unittest", "tests.e2e.test_interface", "-v"]
+
+volumes:
+  ollama_data:
