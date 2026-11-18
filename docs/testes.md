@@ -69,9 +69,30 @@ Os testes de regressão das etapas anteriores continuam passando: `/api/health`,
 | `:` ausente no fim da linha não aparecia no código | Captura de tela | A marca ficava depois do último caractere da linha | Marcador `↵` visível no ponto do erro |
 | Caixa vazia da árvore quando não há AST | Captura de tela | A lista era exibida mesmo sem nós | Árvore, legenda e texto escondidos; fica só o aviso explicativo |
 
-### Execução no Docker
+### Execução no Docker (Windows, 18/11/2026)
 
-Pendente: rodar `scripts\testar.ps1` e `scripts\testar-ia.ps1` no Windows com a versão 0.4.0 e registrar aqui.
+`scripts\testar.ps1`, versão 0.4.0:
+
+| Etapa do script | Resultado |
+| --- | --- |
+| 1. Implantação (build + healthcheck, agora com o serviço `ollama`) | Aprovada |
+| 2. Testes do backend no contêiner | Aprovados |
+| 3. Testes do frontend no contêiner | Aprovados |
+| 4. Testes de interface (Playwright contra o Nginx) | 77 aprovados, 0 reprovados, em 123,8 s |
+
+Evidência: [`validacao/10-etapa4-testes-docker.png`](validacao/10-etapa4-testes-docker.png).
+
+`scripts\testar-ia.ps1`, 1ª execução ([`validacao/11-etapa4-testar-ia-1a-execucao.png`](validacao/11-etapa4-testar-ia-1a-execucao.png)):
+
+| Verificação | Resultado |
+| --- | --- |
+| 1. Serviços no ar (backend, frontend, ollama) | Aprovada |
+| 2. Modelo `llama3.2` baixado e instalado no volume | Aprovada |
+| 3. Modelo continua no volume depois de recriar o contêiner | Aprovada |
+| 4. Quatro explicações (nó, erro, token, pergunta) geradas pelo Llama 3.2 | Aprovada (4 de 4) |
+| 5a/5b. Análise e assistente com o Ollama parado | **Falhou: "HTTP 0" nas duas chamadas** |
+
+**Falha 5a/5b — causa e correção.** "HTTP 0" significa que a requisição não chegou a receber resposta: a chamada falhou no próprio script, não no backend. A função `Postar` usava `Invoke-WebRequest` do Windows PowerShell 5.1, e o bloco `catch` devolvia 0 sempre que a exceção não trazia uma resposta HTTP, escondendo a causa real. O backend já era coberto por testes automatizados nesse cenário (`TestRegressaoSemIA`, com o Ollama inacessível), e todos tinham passado. **Correção:** a verificação passou para dentro do contêiner do backend (`python -m app.demo_ia --sem-ia`), sem depender do PowerShell. Ela grava o resultado em `docs/validacao/ia-sem-ollama.json`. Testada localmente com o Ollama inacessível: análise com HTTP 200 e AST construída; assistente com HTTP 503 e `ia_indisponivel`.
 
 ## Etapa 3 — Análise léxica (scanner) (27/10/2026)
 

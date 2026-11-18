@@ -14,9 +14,8 @@ docker compose exec backend python -m app.demo_ia; r=$?
 docker compose cp backend:/tmp/ia-demo.json docs/validacao/ia-demo.json
 registrar "4. Explicacoes geradas pelo Llama 3.2" $r
 docker compose stop ollama
-curl -s -X POST localhost:8080/api/analisar -H 'Content-Type: application/json' -d '{"codigo":"x = 1"}' | grep -q '"sucesso":true'
-registrar "5a. Analise funciona com o ollama parado" $?
-test "$(curl -s -o /dev/null -w '%{http_code}' -X POST localhost:8080/api/ia/explicar -H 'Content-Type: application/json' -d '{"tipo":"pergunta","codigo":""}')" = 503
-registrar "5b. IA parada responde 503" $?
+docker compose exec backend python -m app.demo_ia --sem-ia; r=$?
+docker compose cp backend:/tmp/ia-sem-ollama.json docs/validacao/ia-sem-ollama.json
+registrar "5. Analise funciona e IA responde 503 com o ollama parado" $r
 docker compose start ollama
 exit $falhou

@@ -502,6 +502,7 @@ BASE_URL=http://localhost:8090 python -m unittest tests.e2e.test_interface -v
 | 27/10/2026 | Etapa 3 — Linux, Python 3.13, Node 22, servidor local | 107 de 107 | 53 de 53 | 48 de 48 (após corrigir as ligaduras) | não executada nesse ambiente |
 | 27/10/2026 | Etapa 3 — Windows, Docker 29.8.2 (`scripts/testar.ps1`) | aprovado | aprovado | 47 de 47 | aprovada (build + healthcheck) |
 | 18/11/2026 | Etapa 4 — Linux, Python 3.13, Node 22, servidor local | 207 de 207 | 74 de 74 | 77 de 77 | não executada nesse ambiente |
+| 18/11/2026 | Etapa 4 — Windows, Docker (`scripts/testar.ps1`) | aprovado | aprovado | 77 de 77 | aprovada (build + healthcheck, com `ollama`) |
 
 Evidências da execução no Docker — Etapa 2: [testes](docs/validacao/04-etapa2-testes-docker.png) e [interface](docs/validacao/05-etapa2-interface-docker.png); Etapa 3: [testes](docs/validacao/06-etapa3-testes-docker.png), [interface](docs/validacao/07-etapa3-interface-docker.png), [erros léxicos](docs/validacao/08-etapa3-erros-lexicos-docker.png) e [passo a passo](docs/validacao/09-etapa3-passo-a-passo-docker.png).
 

@@ -32,6 +32,23 @@ def chamar(metodo: str, caminho: str, corpo: dict | None = None) -> tuple[int, d
         return erro.code, json.loads(erro.read())
 
 
+def sem_ia() -> int:
+    """Com o contêiner do Ollama parado: a análise precisa continuar
+    funcionando e o assistente precisa responder 503 com mensagem clara."""
+    cod_analise, analise = chamar("POST", "/api/analisar", {"codigo": CODIGO})
+    cod_ia, ia = chamar("POST", "/api/ia/explicar", {"tipo": "pergunta", "codigo": "", "pergunta": "teste"})
+    analise_ok = cod_analise == 200 and analise.get("sintatico", {}).get("sucesso") is True
+    ia_ok = cod_ia == 503 and ia.get("erro", {}).get("tipo") == "ia_indisponivel"
+    print(f"Analise com o ollama parado: HTTP {cod_analise}, AST construida: {analise_ok}")
+    print(f"Assistente com o ollama parado: HTTP {cod_ia}, erro: {ia.get('erro', {}).get('tipo')}")
+    print(f"Mensagem mostrada ao estudante: {ia.get('erro', {}).get('mensagem')}")
+    registro = {"analise_http": cod_analise, "analise_ok": analise_ok, "ia_http": cod_ia,
+                "ia_resposta": ia, "data": time.strftime("%Y-%m-%d %H:%M:%S")}
+    with open("/tmp/ia-sem-ollama.json", "w", encoding="utf-8") as arquivo:
+        json.dump(registro, arquivo, ensure_ascii=False, indent=2)
+    return 0 if analise_ok and ia_ok else 1
+
+
 def main() -> int:
     registro = {"data": time.strftime("%Y-%m-%d %H:%M:%S"), "casos": []}
     status_http, status = chamar("GET", "/api/ia/status")
@@ -77,4 +94,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(sem_ia() if "--sem-ia" in sys.argv else main())
