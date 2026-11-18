@@ -2,6 +2,77 @@
 
 Registro das execuções de teste do projeto, em ordem cronológica. Cada etapa traz o que foi testado, os comandos usados, os resultados, as falhas encontradas e o que ainda falta.
 
+## Etapa 4 — Análise sintática e AST (18/11/2026)
+
+**Ambiente das execuções:** Linux, Python 3.13, Starlette 1.6.0, Uvicorn 0.53.0, Node.js 22, Playwright 1.56.0 com Chromium, servidor local `tests/e2e/servidor_local.py` (frontend + backend real, sem Ollama). A execução no Docker é feita no Windows com `scripts\testar.ps1` e `scripts\testar-ia.ps1`, e fica registrada abaixo, em seções próprias.
+
+A gramática e os testes do parser foram escritos juntos, construção por construção: expressões, atribuições, chamadas, `if/elif/else`, `while`, erros e recuperação. A cada passo todas as suítes foram executadas de novo.
+
+### Execuções por funcionalidade
+
+| # | Funcionalidade | Tipo | Comando | Resultado |
+| --- | --- | --- | --- | --- |
+| 1 | Construções válidas e AST esperada (atribuição, literais, chamadas, `if/elif/else`, `while`, aninhamento, comentários, exemplos da interface) | Unitário | `cd backend && python -m unittest tests.test_parser -v` | Aprovado |
+| 2 | Precedência e associatividade (`2 + 3 * 4`, `10 - 3 - 2`, `100 / 10 / 2`, `(10 + 5) * 2`, unário, relacional, 6 operadores relacionais) | Unitário | idem | Aprovado |
+| 3 | Posições dos nós, nó pai cobrindo os parênteses, ids em pré-ordem, regra e passo de cada nó, posições iguais às dos tokens | Unitário | idem | Aprovado |
+| 4 | Construções incompletas (operando, valor, `:`, `)`, vírgula, argumento, parênteses vazios, condição, bloco, fim do código) com `encontrado`, `esperado`, `regra`, `producao` e mensagem | Unitário | idem | Aprovado |
+| 5 | Combinações inválidas (`else`/`elif` sem `if`, operadores seguidos, palavra reservada como nome, `for`, `and/or/not/in`, atribuição inválida, `=` na condição, expressão sem efeito, valores seguidos, comparação encadeada, `)` sem abertura, recuo inesperado, bloco na mesma linha) | Unitário | idem | Aprovado |
+| 6 | Recuperação de erros: vários erros acumulados, sem cascata depois de `:` ausente, erros dentro de bloco com cabeçalho inválido, limite de 50 erros, passos de erro e de recuperação | Unitário | idem | Aprovado |
+| 7 | Casos de borda: vazio, só comentários, comando sem quebra final, fim no meio, 300 parênteses, 500 sinais, 1 500 linhas (passos limitados, AST completa) | Unitário | idem | Aprovado |
+| 8 | Integração com o scanner: parser não executado com erro léxico, aviso léxico não impede o parser, parser consome exatamente os tokens do scanner, tokens iguais aos da Etapa 3 | Unitário | idem | Aprovado |
+| 9 | Árvore de derivação: folhas = tokens em ordem; cadeia de regras; ausente com erro | Unitário | idem | Aprovado |
+| 10 | Gramática do código idêntica à de `docs/gramatica.md`; todo tipo de nó tem regra | Unitário | idem | Aprovado |
+| 11 | **Oráculo:** estrutura e posições da AST iguais às do módulo `ast` do Python em 8 programas de referência e em 300 programas aleatórios (semente 2026); 13 programas que o Python rejeita também rejeitados | Diferencial | idem | Aprovado: nenhuma divergência |
+| 12 | Endpoint: campos da Etapa 3 preservados + `lexico` e `sintatico`; AST e sucesso; erro sintático com AST nula e objeto de erro completo; erro léxico sem parser e com `motivo`; plural; só comentários; falha do parser como 500 genérico; entrada no limite | Endpoints | `python -m unittest tests.test_api -v` | 36 aprovados (29 anteriores, 2 atualizados de propósito, + 7 novos) |
+| 13 | Assistente de IA com Ollama falso: status, `/api/chat`, `message.content`, resposta vazia ou inválida, modelo ausente, indisponível com nova tentativa, tempo limite, sem detalhes internos, contexto do nó/token/erro/pergunta vindo do parser, dados delimitados, pedidos inválidos, análise sem IA, variáveis de ambiente | Endpoints | `python -m unittest tests.test_ia -v` | 21 aprovados |
+| 14 | Frontend: preparação da AST (`sintatico.js`) e cliente do assistente (`api.js`) | Unitário (frontend) | `cd frontend && node --test "tests/unit/*.test.js"` | 74 aprovados (53 anteriores, 6 gerados pelos 2 exemplos novos, + 15 novos) |
+| 15 | Interface: árvore, precedência e parênteses, seleção com trecho e regra, posições iguais às da tabela, expandir/recolher e teclado, filtro, exportação JSON, derivação, explicação, legenda com forma, passo a passo do parser, erros sintáticos, vários erros, distinção léxico × sintático, entrada grande, aviso de desatualizado, celular, assistente simulado | Interface | `BASE_URL=http://localhost:8090 python -m unittest tests.e2e.test_interface -v` | 77 aprovados (48 anteriores, alguns atualizados de propósito, + 29 novos) |
+| 16 | Sensibilidade dos testes do parser | Mutação manual | Associatividade trocada para a direita em `_binaria` | 204 casos reprovados; restaurado |
+| 17 | Idem | Mutação manual | Nó pai sem cobrir os parênteses | 229 casos reprovados (oráculo); restaurado |
+| 18 | Revisão visual em 1366 px e 390 px | Capturas com Playwright | `docs/interface/ast-*.png`, `erros-sintaticos.png`, `celular-ast.png` | Sem rolagem horizontal; problemas listados abaixo e corrigidos |
+
+### Testes que mudaram de propósito (regressão)
+
+| Teste | Antes (Etapa 3) | Agora (Etapa 4) |
+| --- | --- | --- |
+| Contrato de `POST /api/analisar` | 10 campos | os mesmos 10 campos **mais** `lexico` e `sintatico` |
+| Mensagem geral | "Análise léxica concluída sem erros: N tokens reconhecidos." | "Análises léxica e sintática concluídas sem erros: N tokens reconhecidos e AST com M nós." (o resumo léxico continua em `lexico.mensagem`) |
+| Mensagem com erro léxico | resumo léxico | resumo léxico + "A análise sintática não foi executada." |
+| Estado do resultado na interface | `lexico_ok` | `analise_ok` (ou `sintatico_erros`) |
+| Exemplo "Erro sintático (tokens válidos)" e `if x > 5` sem `:` | aceitos (sem erro léxico) | sem erro léxico, mas **recusados pelo parser** |
+| `for x:` (aviso léxico) | aceito | aviso léxico mantido + erro `palavra_fora_do_subconjunto` |
+| Teste das ligaduras | código `x >= 1 != 2` | `x = a >= 1` e `y = b != 2` (o código antigo é uma comparação encadeada, agora recusada) |
+| Fase atual no cabeçalho | Tokens | Árvore sintática (próxima: Semântica, "em breve") |
+
+Os testes de regressão das etapas anteriores continuam passando: `/api/health`, `/api/hello`, validações (400, 413, 422), 404/405/500, falhas de comunicação, tokens iguais aos da Etapa 3, tabela, cores, passo a passo léxico e celular.
+
+### Execução final de regressão
+
+| Suíte | Aprovados | Reprovados |
+| --- | --- | --- |
+| Backend (validação 20, endpoints 36, scanner 58, parser 72, assistente 21) | 207 | 0 |
+| Frontend (unitários) | 74 | 0 |
+| Interface e ponta a ponta | 77 | 0 |
+| **Total** | **358** | **0** |
+
+### Falhas encontradas e correções
+
+| Falha | Como apareceu | Causa | Correção |
+| --- | --- | --- | --- |
+| 50 erros iguais ("foi encontrado o fim do bloco") para uma única linha recuada | Teste manual de recuperação | A sincronização parava em `DEDENT` sem consumi-lo e o laço do programa tentava a mesma posição de novo | Bloco órfão analisado e descartado (`_bloco_orfao`) e garantia de progresso de pelo menos um token por recuperação; testes `test_indentacao_inesperada` e `test_programa_com_muitos_erros_para_no_limite` |
+| Dezenas de programas aleatórios "válidos" recusados | Oráculo | **Erro no gerador de testes**: criava `a < b > c`, que no Python é comparação encadeada, fora do subconjunto | Gerador refeito: comparações só no nível de cima, entre parênteses ou como argumento |
+| `x = ()` esperado como inválido também no Python | Oráculo | **Erro no teste**: em Python `()` é uma tupla vazia | Caso retirado da lista "o Python rejeita"; continua testado como fora do subconjunto |
+| 2 testes de endpoint reprovados | `test_api` | **Erro no teste**: contagem feita de cabeça (7 nós e 16 tokens); o certo é 6 nós e 17 tokens | Expectativas corrigidas depois de contar nó a nó e token a token |
+| `if a and b:` dava "era esperado ':'" | Revisão das mensagens | `and` não era tratado | Novo código `operador_logico_fora_do_subconjunto` (`and`, `or`, `not`, `in`, `is`) e teste |
+| "Recolher tudo" não escondia os nós | Teste de interface `test_expandir_recolher_e_teclado` | Faltava a regra CSS que esconde grupos recolhidos | `li[aria-expanded="false"] > ul { display: none }` |
+| Teste de posição falhava para "coluna 18" | Teste de interface | **Erro no teste**: `\b` não separa "18" de "Atributos" no texto concatenado | Expressão regular trocada por `(?!\d)` |
+| `:` ausente no fim da linha não aparecia no código | Captura de tela | A marca ficava depois do último caractere da linha | Marcador `↵` visível no ponto do erro |
+| Caixa vazia da árvore quando não há AST | Captura de tela | A lista era exibida mesmo sem nós | Árvore, legenda e texto escondidos; fica só o aviso explicativo |
+
+### Execução no Docker
+
+Pendente: rodar `scripts\testar.ps1` e `scripts\testar-ia.ps1` no Windows com a versão 0.4.0 e registrar aqui.
+
 ## Etapa 3 — Análise léxica (scanner) (27/10/2026)
 
 **Ambiente das execuções:** Linux, Python 3.13, Starlette 1.6.0, Uvicorn 0.53.0, Node.js 22.22, Playwright 1.56.0 com Chromium, servidor local `tests/e2e/servidor_local.py` (frontend + backend real). A execução no Docker é feita no Windows com `scripts\testar.ps1` e está registrada abaixo, em seção própria.

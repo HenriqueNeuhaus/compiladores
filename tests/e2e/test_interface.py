@@ -183,7 +183,8 @@ class TestExemplos(BaseInterface):
     def test_cada_exemplo_tem_o_resultado_lexico_esperado(self):
         # Só o exemplo "erros-lexicos" tem erros léxicos; o de erro sintático
         # tem só tokens válidos e agora é recusado pelo parser (Etapa 4).
-        resultado_esperado = {"erros-lexicos": "lexico_erros", "erro-sintatico": "sintatico_erros"}
+        resultado_esperado = {"erros-lexicos": "lexico_erros", "erro-sintatico": "sintatico_erros",
+                              "erros-sintaticos": "sintatico_erros"}
         for exemplo in self.exemplos():
             with self.subTest(exemplo=exemplo["id"]):
                 self.pagina.select_option("#exemplo", exemplo["id"])

@@ -50,6 +50,20 @@ export const EXEMPLOS = [
     ].join("\n"),
   },
   {
+    id: "precedencia",
+    titulo: "Precedência e associatividade",
+    construcoes:
+      "multiplicação antes da adição, subtração associativa à esquerda, parênteses mudando a ordem e menos unário. Compare as três árvores",
+    codigo: [
+      "# Compare as árvores sintáticas",
+      "r1 = 10 + 5 * 2",
+      "r2 = 20 - 5 - 3",
+      "r3 = (10 + 5) * 2",
+      "r4 = -r1 % 3",
+      "",
+    ].join("\n"),
+  },
+  {
     id: "erro-sintatico",
     titulo: "Erro sintático (tokens válidos)",
     construcoes:
@@ -58,6 +72,22 @@ export const EXEMPLOS = [
       "x = 10",
       "if x > 5",
       '    print("x é maior que 5")',
+      "",
+    ].join("\n"),
+  },
+  {
+    id: "erros-sintaticos",
+    titulo: "Erros sintáticos (vários)",
+    construcoes:
+      "operador sem operando, ':' ausente, elif sem condição e atribuição a um literal. O parser se recupera e mostra todos os erros",
+    codigo: [
+      "# Programa com erros sintáticos",
+      "total = 10 +",
+      "if total > 5",
+      '    print("maior", total)',
+      "elif:",
+      '    print("menor")',
+      "5 = total",
       "",
     ].join("\n"),
   },

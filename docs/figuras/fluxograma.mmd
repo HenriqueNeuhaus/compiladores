@@ -1,0 +1,23 @@
+flowchart TD
+    A([Estudante escreve ou escolhe um programa]) --> B[Frontend valida a entrada<br/>vazia, só espaços, limite de 20 000 caracteres]
+    B -->|inválida| B1[/Mensagem de entrada/]
+    B -->|válida| C[POST /api/analisar<br/>Nginx repassa ao backend]
+    C --> D[Backend valida o JSON e o campo codigo]
+    D -->|inválido| D1[/Erro 400, 413 ou 422/]
+    D -->|válido| E[Análise léxica<br/>scanner da Etapa 3]
+    E --> F{Erro léxico?}
+    F -->|sim| G[/Tokens válidos + erros léxicos<br/>parser não executado, motivo informado/]
+    F -->|não| H[Análise sintática<br/>parser descendente recursivo]
+    H --> I{Erro sintático?}
+    I -->|sim| J[Recuperação: modo pânico e inserção<br/>acumula até 50 erros]
+    J --> K[/Erros com encontrado, esperado e regra<br/>AST nula, passos até o erro/]
+    I -->|não| L[Constrói AST e árvore de derivação]
+    L --> M[/Tokens + AST + derivação + passos/]
+    M --> N[[Análise semântica<br/>Etapa 5, ainda não implementada]]
+    G --> O[Apresentação: tabela de tokens, código colorido,<br/>árvore navegável, passo a passo, erros]
+    K --> O
+    M --> O
+    O -.->|opcional| P[Assistente de IA<br/>backend monta o contexto e consulta o Ollama / Llama 3.2]
+    P -.-> O
+    style N stroke-dasharray: 5 5
+    style P stroke-dasharray: 5 5
