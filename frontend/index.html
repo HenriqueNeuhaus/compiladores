@@ -23,12 +23,16 @@
         <span class="fase-nome">Código-fonte</span>
         <span class="fase-estado">disponível</span>
       </li>
-      <li class="fase atual" aria-current="step">
+      <li class="fase feita">
         <span class="fase-nome">Tokens</span>
         <span class="fase-estado">disponível</span>
       </li>
-      <li class="fase">
+      <li class="fase atual" aria-current="step">
         <span class="fase-nome">Árvore sintática</span>
+        <span class="fase-estado">disponível</span>
+      </li>
+      <li class="fase">
+        <span class="fase-nome">Semântica</span>
         <span class="fase-estado">em breve</span>
       </li>
     </ol>
@@ -128,6 +132,75 @@
               </thead>
               <tbody></tbody>
             </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="painel painel-analise" id="analise-sintatica" aria-labelledby="titulo-sintatica" hidden>
+      <div class="painel-topo">
+        <h2 id="titulo-sintatica">Análise sintática e árvore sintática abstrata (AST)</h2>
+        <p class="aviso-desatualizado" id="aviso-desatualizado-sint" hidden>O código mudou depois da análise. Clique em Analisar código para atualizar.</p>
+      </div>
+      <p class="sintatico-motivo" id="sintatico-motivo" role="status" hidden></p>
+
+      <div id="sintatico-conteudo">
+        <details class="escopo explicacao-ast" id="explicacao-ast">
+          <summary>O que é a análise sintática e a AST?</summary>
+          <p>O <strong>parser</strong> (analisador sintático) recebe a sequência de tokens do scanner e verifica se ela segue a <strong>gramática</strong> da linguagem. O scanner reconhece as palavras; o parser reconhece as frases.</p>
+          <p>Este parser é <strong>descendente recursivo</strong>: cada regra da gramática é uma função, e cada função chama as regras de que precisa. A pilha de regras no passo a passo mostra quais funções estão abertas em cada momento.</p>
+          <p>A <strong>AST</strong> guarda só o que importa: em <code>x = 10 + 5 * 2</code>, a multiplicação fica abaixo da adição porque é calculada primeiro. A <strong>árvore de derivação</strong> mostra todas as regras aplicadas e todos os tokens, inclusive os que a AST descarta, como parênteses e <code>:</code>.</p>
+          <p>A gramática completa (EBNF) está em <code>docs/gramatica.md</code>. A análise semântica (Etapa 5) ainda não foi implementada.</p>
+        </details>
+
+        <div class="reprodutor" id="sint-reprodutor" role="group" aria-label="Controles do passo a passo do parser">
+          <div class="controles">
+            <button type="button" class="botao-passo" id="sint-inicio" aria-label="Primeiro passo do parser">⏮</button>
+            <button type="button" class="botao-passo" id="sint-anterior" aria-label="Passo anterior do parser">◀</button>
+            <button type="button" class="botao-principal" id="sint-reproduzir" aria-pressed="false">Reproduzir</button>
+            <button type="button" class="botao-passo" id="sint-proximo" aria-label="Próximo passo do parser">▶</button>
+            <button type="button" class="botao-passo" id="sint-fim" aria-label="Último passo do parser">⏭</button>
+            <span class="passo-contador" id="sint-contador">Passo 1 de 1</span>
+          </div>
+          <input type="range" id="sint-barra" min="0" max="0" value="0" aria-label="Escolher o passo do parser">
+          <p class="passo-descricao" id="sint-descricao" aria-live="polite"></p>
+          <div class="pilha-area">
+            <span class="pilha-rotulo" id="sint-pilha-rotulo">Regras abertas (pilha de chamadas)</span>
+            <ol class="pilha pilha-regras" id="sint-pilha" aria-labelledby="sint-pilha-rotulo"></ol>
+          </div>
+          <div class="fita-area">
+            <span class="pilha-rotulo" id="sint-tokens-rotulo">Tokens (o destacado é o próximo a ser lido)</span>
+            <ol class="fita-tokens" id="sint-tokens" aria-labelledby="sint-tokens-rotulo"></ol>
+          </div>
+        </div>
+
+        <div class="analise-grade grade-sintatica">
+          <div class="bloco-arvore">
+            <div class="barra-arvore" role="toolbar" aria-label="Opções da árvore">
+              <div class="alternador" role="group" aria-label="Árvore exibida">
+                <button type="button" id="ver-ast" aria-pressed="true">AST</button>
+                <button type="button" id="ver-derivacao" aria-pressed="false">Árvore de derivação</button>
+              </div>
+              <button type="button" class="botao-ferramenta" id="expandir-tudo">Expandir tudo</button>
+              <button type="button" class="botao-ferramenta" id="recolher-tudo">Recolher tudo</button>
+              <label class="filtro"><span>Filtrar</span>
+                <select id="filtro-tipo"><option value="">Todos os tipos</option></select>
+              </label>
+              <button type="button" class="botao-ferramenta" id="exportar-json">Exportar JSON</button>
+            </div>
+            <p class="filtro-info" id="filtro-info" aria-live="polite"></p>
+            <p class="arvore-aviso" id="arvore-aviso" hidden></p>
+            <ul class="arvore" id="arvore" role="tree" aria-label="Árvore sintática"></ul>
+            <ul class="legenda legenda-nos" id="legenda-nos" aria-label="Legenda das categorias de nó"></ul>
+            <details class="arvore-texto-area">
+              <summary>Ver a AST como texto</summary>
+              <pre class="arvore-texto" id="arvore-texto"></pre>
+            </details>
+          </div>
+          <div class="bloco-codigo-no">
+            <h3>Código</h3>
+            <div class="codigo-destacado codigo-sintatico" id="sint-codigo" aria-label="Código com o trecho do nó selecionado"></div>
+            <div class="no-detalhes" id="no-detalhes" aria-live="polite"></div>
           </div>
         </div>
       </div>

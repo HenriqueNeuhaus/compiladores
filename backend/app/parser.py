@@ -302,7 +302,7 @@ class Parser:
         self.pilha.append(regra)
         token = self._atual()
         self._passo("entrar",
-                    f"Aplica a regra {regra} ({DESCRICAO_REGRA[regra]}). "
+                    f"Aplica a regra {regra}: {DESCRICAO_REGRA[regra]}. "
                     f"Próximo token: {_descrever(token)}.",
                     regra=regra)
         no = {"regra": regra, "filhos": []}

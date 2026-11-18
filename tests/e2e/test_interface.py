@@ -11,6 +11,7 @@ requisição no navegador (page.route), sem alterar o backend.
 
 import json
 import os
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -98,10 +99,11 @@ class TestTelaPrincipal(BaseInterface):
         expect(self.pagina.locator("#analise-lexica")).to_be_hidden()
 
     def test_fase_de_tokens_disponivel_e_arvore_em_breve(self):
-        # Etapa 3: a fase atual passou de "Código-fonte" para "Tokens".
-        expect(self.pagina.locator(".fase.atual")).to_contain_text("Tokens")
+        # Etapa 4: a fase atual passou de "Tokens" para "Árvore sintática".
+        expect(self.pagina.locator(".fase.atual")).to_contain_text("Árvore sintática")
         expect(self.pagina.locator(".fase.atual")).to_contain_text("disponível")
-        expect(self.pagina.locator(".fase").nth(2)).to_contain_text("em breve")
+        expect(self.pagina.locator(".fase").nth(1)).to_contain_text("disponível")
+        expect(self.pagina.locator(".fase").nth(3)).to_contain_text("em breve")
 
     def test_sem_rolagem_horizontal_em_tela_de_celular(self):
         self.pagina.set_viewport_size({"width": 360, "height": 780})
@@ -133,7 +135,7 @@ class TestEdicaoDoCodigo(BaseInterface):
 
     def test_limpar_esvazia_o_editor_e_o_resultado(self):
         self.preencher("x = 1")
-        self.analisar_e_esperar("lexico_ok")
+        self.analisar_e_esperar("analise_ok")
         self.pagina.locator("#limpar").click()
         expect(self.codigo).to_have_value("")
         expect(self.codigo).to_be_focused()
@@ -176,15 +178,16 @@ class TestExemplos(BaseInterface):
             self.botao.click()
         enviado = json.loads(info.value.post_data)["codigo"]
         self.assertEqual(enviado, exemplo["codigo"] + "total = 1\n")
-        expect(self.resultado).to_have_attribute("data-estado", "lexico_ok")
+        expect(self.resultado).to_have_attribute("data-estado", "analise_ok")
 
     def test_cada_exemplo_tem_o_resultado_lexico_esperado(self):
-        # Só o exemplo "erros-lexicos" deve ter erros léxicos; o de erro
-        # sintático é formado apenas por tokens válidos.
+        # Só o exemplo "erros-lexicos" tem erros léxicos; o de erro sintático
+        # tem só tokens válidos e agora é recusado pelo parser (Etapa 4).
+        resultado_esperado = {"erros-lexicos": "lexico_erros", "erro-sintatico": "sintatico_erros"}
         for exemplo in self.exemplos():
             with self.subTest(exemplo=exemplo["id"]):
                 self.pagina.select_option("#exemplo", exemplo["id"])
-                esperado = "lexico_erros" if exemplo["id"] == "erros-lexicos" else "lexico_ok"
+                esperado = resultado_esperado.get(exemplo["id"], "analise_ok")
                 self.analisar_e_esperar(esperado)
 
 
@@ -194,9 +197,10 @@ class TestEnvioEComunicacao(BaseInterface):
         with self.pagina.expect_response("**/api/analisar") as info:
             self.botao.click()
         self.assertEqual(info.value.status, 200)
-        expect(self.resultado).to_have_attribute("data-estado", "lexico_ok")
-        # Etapa 3: a mensagem e os detalhes passaram a ser os da análise léxica.
-        expect(self.mensagem).to_have_text("Análise léxica concluída sem erros: 10 tokens reconhecidos.")
+        expect(self.resultado).to_have_attribute("data-estado", "analise_ok")
+        # Etapa 4: a mensagem resume as análises léxica e sintática.
+        expect(self.mensagem).to_have_text(
+            "Análises léxica e sintática concluídas sem erros: 10 tokens reconhecidos e AST com 6 nós.")
         expect(self.pagina.locator("#total-tokens")).to_have_text("10")
         expect(self.codigo).to_have_value("x = 10\nprint(x)")  # código preservado
 
@@ -215,12 +219,15 @@ class TestEnvioEComunicacao(BaseInterface):
         with self.pagina.expect_request("**/api/analisar") as info:
             self.botao.click()
         self.assertEqual(json.loads(info.value.post_data)["codigo"], codigo)
-        expect(self.resultado).to_have_attribute("data-estado", "lexico_ok")
+        expect(self.resultado).to_have_attribute("data-estado", "analise_ok")
         self.assertEqual(self.pagina.locator("#resultado b, #resultado script").count(), 0)
 
     def test_codigo_com_erro_sintatico_nao_tem_erro_lexico(self):
+        # Etapa 4: o código continua sem erro léxico, mas o parser o recusa.
         self.preencher('if x > 5\n    print("x")')
-        self.analisar_e_esperar("lexico_ok")
+        self.analisar_e_esperar("sintatico_erros")
+        expect(self.pagina.locator("#lista-erros")).to_have_count(0)
+        expect(self.pagina.locator("#lista-erros-sintaticos li")).to_have_count(1)
 
     def test_botao_fica_desabilitado_durante_o_envio(self):
         def atrasar(rota):
@@ -232,7 +239,7 @@ class TestEnvioEComunicacao(BaseInterface):
         self.botao.click()
         expect(self.botao).to_be_disabled()
         expect(self.botao).to_have_text("Analisando…")
-        expect(self.resultado).to_have_attribute("data-estado", "lexico_ok")
+        expect(self.resultado).to_have_attribute("data-estado", "analise_ok")
         expect(self.botao).to_be_enabled()
         expect(self.botao).to_have_text("Analisar código")
 
@@ -291,7 +298,7 @@ class TestValidacoesEMensagens(BaseInterface):
     def test_depois_de_um_erro_um_novo_envio_funciona(self):
         self.analisar_e_esperar("entrada")
         self.preencher("x = 1")
-        self.analisar_e_esperar("lexico_ok")
+        self.analisar_e_esperar("analise_ok")
 
 
 PROGRAMA_BLOCO = "x = 1\nif x >= 1:\n    print(x)\n"
@@ -300,7 +307,7 @@ PROGRAMA_BLOCO = "x = 1\nif x >= 1:\n    print(x)\n"
 class TestTabelaDeTokens(BaseInterface):
     def test_tabela_tem_colunas_e_uma_linha_por_token(self):
         self.preencher(PROGRAMA_BLOCO)
-        self.analisar_e_esperar("lexico_ok")
+        self.analisar_e_esperar("analise_ok")
         cabecalho = self.pagina.locator("#tabela-tokens th")
         expect(cabecalho).to_have_text(["#", "Tipo", "Lexema", "Linha", "Coluna"])
         linhas = self.pagina.locator("#tabela-tokens tbody tr")
@@ -315,14 +322,14 @@ class TestTabelaDeTokens(BaseInterface):
 
     def test_contagem_por_categoria(self):
         self.preencher(PROGRAMA_BLOCO)
-        self.analisar_e_esperar("lexico_ok")
+        self.analisar_e_esperar("analise_ok")
         chip = self.pagina.locator('#contagem [data-tipo="IDENTIFICADOR"]')
         expect(chip).to_contain_text("Identificador")
         expect(chip.locator(".chip-qtd")).to_have_text("4")
 
     def test_lexema_com_html_e_exibido_como_texto(self):
         self.preencher('s = "<img src=x onerror=alert(1)>"')
-        self.analisar_e_esperar("lexico_ok")
+        self.analisar_e_esperar("analise_ok")
         expect(self.pagina.locator("#tabela-tokens tbody")).to_contain_text("<img src=x onerror=alert(1)>")
         self.assertEqual(self.pagina.locator("#analise-lexica img").count(), 0)
 
@@ -330,7 +337,7 @@ class TestTabelaDeTokens(BaseInterface):
 class TestCodigoDestacado(BaseInterface):
     def test_cada_categoria_recebe_sua_cor(self):
         self.preencher('if nota >= 7:\n    print("ok")  # fim\n')
-        self.analisar_e_esperar("lexico_ok")
+        self.analisar_e_esperar("analise_ok")
         area = self.pagina.locator("#codigo-destacado")
         for texto, classe in [("if", "cat-palavra"), ("nota", "cat-identificador"), (">=", "cat-operador"),
                               ("7", "cat-numero"), ('"ok"', "cat-string"), ("# fim", "cat-comentario")]:
@@ -345,8 +352,8 @@ class TestCodigoDestacado(BaseInterface):
     def test_operadores_compostos_sem_ligaduras(self):
         # Regressão (validação no Docker): com a fonte JetBrains Mono carregada,
         # ">=" aparecia como um único símbolo "≥" no editor, no código e na tabela.
-        self.preencher("x >= 1 != 2\n")
-        self.analisar_e_esperar("lexico_ok")
+        self.preencher("x = a >= 1\ny = b != 2\n")
+        self.analisar_e_esperar("analise_ok")
         for seletor in ("#codigo", "#codigo-destacado .cat-operador", "#tabela-tokens .lexema code",
                         "#explicacao code"):
             with self.subTest(seletor=seletor):
@@ -357,7 +364,7 @@ class TestCodigoDestacado(BaseInterface):
 
     def test_texto_do_codigo_destacado_e_igual_ao_do_editor(self):
         self.preencher(PROGRAMA_BLOCO)
-        self.analisar_e_esperar("lexico_ok")
+        self.analisar_e_esperar("analise_ok")
         linhas = self.pagina.locator("#codigo-destacado .linha-codigo:not(.linha-fim) .conteudo")
         textos = linhas.evaluate_all(
             "ls => ls.map(l => [...l.children].filter(s => !s.classList.contains('marcador'))"
@@ -394,7 +401,8 @@ class TestErrosLexicosNaInterface(BaseInterface):
 
     def test_palavra_fora_do_subconjunto_gera_aviso(self):
         self.preencher("for x:\n    y = 1\n")
-        self.analisar_e_esperar("lexico_ok")
+        # Etapa 4: o aviso léxico continua e o parser recusa o 'for'.
+        self.analisar_e_esperar("sintatico_erros")
         expect(self.pagina.locator("#lista-avisos li")).to_have_count(1)
         expect(self.pagina.locator("#lista-avisos")).to_contain_text("for")
 
@@ -403,7 +411,7 @@ class TestPassoAPasso(BaseInterface):
     def setUp(self):
         super().setUp()
         self.preencher(PROGRAMA_BLOCO)
-        self.analisar_e_esperar("lexico_ok")
+        self.analisar_e_esperar("analise_ok")
         self.contador = self.pagina.locator("#passo-contador")
         self.descricao = self.pagina.locator("#passo-descricao")
 
@@ -456,7 +464,7 @@ class TestPassoAPasso(BaseInterface):
         self.codigo.press("End")
         self.pagina.keyboard.type(" ")
         expect(self.pagina.locator("#aviso-desatualizado")).to_be_visible()
-        self.analisar_e_esperar("lexico_ok")
+        self.analisar_e_esperar("analise_ok")
         expect(self.pagina.locator("#aviso-desatualizado")).to_be_hidden()
 
     def test_limpar_esconde_a_analise(self):
@@ -479,6 +487,252 @@ class TestCelular(BaseInterface):
             for seletor in ("#passo-inicio", "#passo-anterior", "#passo-proximo", "#passo-fim"):
                 caixa = pagina.locator(seletor).bounding_box()
                 self.assertGreaterEqual(caixa["height"], 40, f"{seletor} pequeno demais para toque")
+        finally:
+            contexto.close()
+
+
+# ---------------------------------------------------------------------------
+# Etapa 4: análise sintática e AST
+# ---------------------------------------------------------------------------
+
+PROGRAMA_PRECEDENCIA = "resultado = 10 + 5 * 2\n"
+
+
+class TestArvoreSintatica(BaseInterface):
+    def setUp(self):
+        super().setUp()
+        self.arvore = self.pagina.locator("#arvore")
+
+    def no(self, tipo):
+        return self.arvore.locator(f'[role="treeitem"][data-tipo="{tipo}"]')
+
+    def test_arvore_exibida_para_codigo_valido_com_precedencia(self):
+        self.preencher(PROGRAMA_PRECEDENCIA)
+        self.analisar_e_esperar("analise_ok")
+        expect(self.pagina.locator("#analise-sintatica")).to_be_visible()
+        expect(self.arvore.locator('[role="treeitem"]')).to_have_count(8)
+        # A multiplicação fica dentro (abaixo) da adição: é calculada primeiro.
+        adicao = self.no("ADICAO")
+        expect(adicao.locator('[data-tipo="MULTIPLICACAO"]')).to_have_count(1)
+        expect(adicao.locator(":scope > .no-linha")).to_contain_text("valor")
+        texto = self.pagina.locator("#arvore-texto")
+        self.assertIn("└── ADICAO: + (valor)", texto.text_content())
+        self.assertIn("    └── MULTIPLICACAO: * (direita)", texto.text_content())
+
+    def test_parenteses_e_associatividade_mudam_a_arvore(self):
+        self.preencher("a = (10 + 5) * 2\nb = 20 - 5 - 3\n")
+        self.analisar_e_esperar("analise_ok")
+        expect(self.no("MULTIPLICACAO").locator('[data-tipo="ADICAO"]')).to_have_count(1)
+        subtracoes = self.no("SUBTRACAO")
+        expect(subtracoes).to_have_count(2)
+        # (20 - 5) - 3: a primeira subtração contém a segunda, à esquerda.
+        expect(subtracoes.first.locator('[data-tipo="SUBTRACAO"] .no-papel').first).to_have_text("esquerda")
+
+    def test_selecionar_no_destaca_o_trecho_e_mostra_a_regra(self):
+        self.preencher(PROGRAMA_PRECEDENCIA)
+        self.analisar_e_esperar("analise_ok")
+        self.no("MULTIPLICACAO").locator(":scope > .no-linha").click()
+        expect(self.no("MULTIPLICACAO")).to_have_attribute("aria-selected", "true")
+        expect(self.pagina.locator("#sint-codigo .trecho-selecionado")).to_have_text("5 * 2")
+        detalhes = self.pagina.locator("#no-detalhes")
+        expect(detalhes).to_contain_text('termo = fator { ( "*" | "/" | "%" ) fator } ;')
+        expect(detalhes).to_contain_text("linha 1, colunas 18–22")
+        expect(detalhes.locator(".tokens-do-no li")).to_have_text(["5", "*", "2"])
+        detalhes.get_by_role("button", name="Selecionar no editor").click()
+        selecao = self.codigo.evaluate("e => e.value.slice(e.selectionStart, e.selectionEnd)")
+        self.assertEqual(selecao, "5 * 2")
+
+    def test_posicoes_da_arvore_coincidem_com_a_tabela_de_tokens(self):
+        self.preencher(PROGRAMA_PRECEDENCIA)
+        self.analisar_e_esperar("analise_ok")
+        for valor, coluna in (("10", "13"), ("5", "18"), ("2", "22")):
+            with self.subTest(valor=valor):
+                linha_tabela = self.pagina.locator("#tabela-tokens tbody tr").filter(
+                    has=self.pagina.locator(".lexema code", has_text=valor))
+                expect(linha_tabela.locator("td").nth(4)).to_have_text(coluna)
+                self.arvore.locator('[data-tipo="LITERAL_INTEIRO"]', has_text=valor).first.click()
+                # "coluna 18" (um caractere) ou "colunas 13–14" (dois ou mais)
+                expect(self.pagina.locator("#no-detalhes")).to_contain_text(
+                    re.compile(rf"colunas? {coluna}(?!\d)"))
+
+    def test_expandir_recolher_e_teclado(self):
+        self.preencher(PROGRAMA_PRECEDENCIA)
+        self.analisar_e_esperar("analise_ok")
+        self.pagina.locator("#recolher-tudo").click()
+        expect(self.arvore.locator('[role="treeitem"]:visible')).to_have_count(2)  # PROGRAMA e ATRIBUICAO
+        self.pagina.locator("#expandir-tudo").click()
+        expect(self.arvore.locator('[role="treeitem"]:visible')).to_have_count(8)
+        raiz = self.arvore.locator('[role="treeitem"]').first
+        raiz.focus()
+        self.pagina.keyboard.press("ArrowDown")
+        expect(self.no("ATRIBUICAO")).to_be_focused()
+        self.pagina.keyboard.press("ArrowLeft")
+        expect(self.no("ATRIBUICAO")).to_have_attribute("aria-expanded", "false")
+        self.pagina.keyboard.press("ArrowRight")
+        expect(self.no("ATRIBUICAO")).to_have_attribute("aria-expanded", "true")
+
+    def test_filtro_por_tipo(self):
+        self.preencher(PROGRAMA_PRECEDENCIA)
+        self.analisar_e_esperar("analise_ok")
+        self.pagina.select_option("#filtro-tipo", "LITERAL_INTEIRO")
+        expect(self.arvore.locator(".no-linha.filtrado")).to_have_count(3)
+        expect(self.pagina.locator("#filtro-info")).to_have_text("3 nó(s) LITERAL_INTEIRO destacado(s).")
+        self.pagina.select_option("#filtro-tipo", "")
+        expect(self.arvore.locator(".no-linha.filtrado")).to_have_count(0)
+
+    def test_exportar_ast_em_json(self):
+        self.preencher(PROGRAMA_PRECEDENCIA)
+        self.analisar_e_esperar("analise_ok")
+        with self.pagina.expect_download() as info:
+            self.pagina.locator("#exportar-json").click()
+        download = info.value
+        self.assertEqual(download.suggested_filename, "ast.json")
+        dados = json.loads(Path(download.path()).read_text(encoding="utf-8"))
+        self.assertEqual(dados["codigo"], PROGRAMA_PRECEDENCIA)
+        self.assertEqual(dados["ast"]["filhos"][0]["filhos"][1]["tipo"], "ADICAO")
+
+    def test_arvore_de_derivacao_tem_regras_e_todos_os_tokens(self):
+        self.preencher("x = 1\n")
+        self.analisar_e_esperar("analise_ok")
+        self.pagina.locator("#ver-derivacao").click()
+        expect(self.pagina.locator("#ver-derivacao")).to_have_attribute("aria-pressed", "true")
+        regras = self.arvore.locator(".deriv-regra")
+        expect(regras).to_have_text(["programa", "instrucao", "atribuicao", "expressao", "comparacao",
+                                     "soma", "termo", "fator", "primario"])
+        terminais = self.arvore.locator(".deriv-terminal")
+        expect(terminais).to_have_count(5)  # x, =, 1, NOVA_LINHA, FIM_DE_ARQUIVO
+        expect(self.pagina.locator("#filtro-tipo")).to_be_disabled()
+        self.pagina.locator("#ver-ast").click()
+        expect(self.arvore.locator('[role="treeitem"]')).to_have_count(4)
+
+    def test_explicacao_sobre_analise_sintatica_e_ast(self):
+        self.preencher("x = 1\n")
+        self.analisar_e_esperar("analise_ok")
+        self.pagina.locator("#explicacao-ast summary").click()
+        expect(self.pagina.locator("#explicacao-ast")).to_contain_text("descendente recursivo")
+        expect(self.pagina.locator("#explicacao-ast")).to_contain_text("árvore de derivação")
+
+    def test_legenda_usa_forma_alem_da_cor(self):
+        self.preencher(PROGRAMA_PRECEDENCIA)
+        self.analisar_e_esperar("analise_ok")
+        expect(self.pagina.locator("#legenda-nos li")).to_have_count(6)
+        rotulo = self.no("ADICAO").get_attribute("aria-label")
+        self.assertIn("operação", rotulo)
+
+
+class TestPassoAPassoDoParser(BaseInterface):
+    def setUp(self):
+        super().setUp()
+        self.preencher(PROGRAMA_PRECEDENCIA)
+        self.analisar_e_esperar("analise_ok")
+        self.descricao = self.pagina.locator("#sint-descricao")
+        self.pilha = self.pagina.locator("#sint-pilha li")
+
+    def test_primeiro_passo_entra_na_regra_inicial(self):
+        self.pagina.locator("#sint-inicio").click()
+        expect(self.pagina.locator("#sint-contador")).to_contain_text("Passo 1 de")
+        expect(self.descricao).to_contain_text("Aplica a regra programa")
+        expect(self.pilha).to_have_text(["programa"])
+        expect(self.pagina.locator("#sint-tokens li.atual")).to_have_text("resultado")
+
+    def test_pilha_de_regras_desce_ate_o_primario(self):
+        self.pagina.locator("#sint-inicio").click()
+        while "primario" not in (self.pilha.last.text_content() or ""):
+            self.pagina.locator("#sint-proximo").click()
+        expect(self.pilha).to_have_text(["programa", "instrucao", "atribuicao", "expressao", "comparacao",
+                                         "soma", "termo", "fator", "primario"])
+        expect(self.pagina.locator("#sint-tokens li.atual")).to_have_text("10")
+
+    def test_nos_ainda_nao_construidos_ficam_esmaecidos(self):
+        self.pagina.locator("#sint-inicio").click()
+        expect(self.pagina.locator("#arvore .no-linha.futuro")).to_have_count(8)
+        self.pagina.locator("#sint-fim").click()
+        expect(self.pagina.locator("#arvore .no-linha.futuro")).to_have_count(0)
+
+    def test_teclado_no_reprodutor_do_parser(self):
+        self.pagina.locator("#sint-inicio").click()
+        self.pagina.locator("#sint-reproduzir").focus()
+        self.pagina.keyboard.press("ArrowRight")
+        expect(self.pagina.locator("#sint-contador")).to_contain_text("Passo 2 de")
+        self.pagina.keyboard.press("End")
+        expect(self.pagina.locator("#sint-proximo")).to_be_disabled()
+
+
+class TestErrosSintaticosNaInterface(BaseInterface):
+    def test_erro_sintatico_com_encontrado_esperado_regra_e_localizacao(self):
+        self.preencher("x = 1\nif x > 5\n    print(x)\n")
+        self.analisar_e_esperar("sintatico_erros")
+        expect(self.pagina.locator("#resultado-titulo")).to_have_text("Erros sintáticos encontrados")
+        erro = self.pagina.locator("#lista-erros-sintaticos li")
+        expect(erro).to_have_count(1)
+        expect(erro.locator(".selo-erro")).to_have_text("Erro sintático")
+        expect(erro.locator("p")).to_contain_text("Erro sintático na linha 2, coluna 9: era esperado ':'")
+        expect(erro.locator(".erro-campos dd").nth(0)).to_have_text("fim da linha")
+        expect(erro.locator(".erro-campos dd").nth(1)).to_have_text("':'")
+        expect(erro.locator(".producao")).to_contain_text('condicional = "if" expressao ":" bloco')
+        self.assertNotIn("Traceback", self.resultado.inner_text())
+        # Sem AST: a interface explica por quê e marca o local no código.
+        expect(self.pagina.locator("#arvore-aviso")).to_contain_text("A AST não foi construída")
+        expect(self.pagina.locator("#sint-codigo .trecho-erro")).to_have_count(1)
+        expect(self.pagina.locator("#exportar-json")).to_be_disabled()
+
+    def test_mostrar_no_codigo_leva_ao_passo_do_erro(self):
+        self.preencher("x = 5 + * 2\n")
+        self.analisar_e_esperar("sintatico_erros")
+        self.pagina.locator("#lista-erros-sintaticos button", has_text="Mostrar no código").click()
+        expect(self.pagina.locator("#sint-descricao")).to_contain_text("dois operadores seguidos")
+        selecao = self.codigo.evaluate("e => e.value.slice(e.selectionStart, e.selectionEnd)")
+        self.assertEqual(selecao, "*")
+
+    def test_varios_erros_sao_acumulados(self):
+        self.preencher("a = 1 +\nb = 2\nelse:\n    c = 3\nd = (1 2)\n")
+        self.analisar_e_esperar("sintatico_erros")
+        codigos = self.pagina.locator("#lista-erros-sintaticos li").evaluate_all(
+            "ls => ls.map(l => l.dataset.codigo)")
+        self.assertEqual(codigos, ["operando_ausente", "else_sem_if", "parentese_nao_fechado"])
+
+    def test_erro_lexico_e_sintatico_sao_distinguidos(self):
+        self.preencher("x = 1 $ 2\n")
+        self.analisar_e_esperar("lexico_erros")
+        expect(self.pagina.locator("#lista-erros h4")).to_have_text("Erros léxicos (1)")
+        expect(self.pagina.locator("#lista-erros-sintaticos")).to_have_count(0)
+        expect(self.mensagem).to_contain_text("A análise sintática não foi executada.")
+        motivo = self.pagina.locator("#sintatico-motivo")
+        expect(motivo).to_be_visible()
+        expect(motivo).to_contain_text("não foi executada porque o código tem 1 erro léxico")
+        expect(self.pagina.locator("#sintatico-conteudo")).to_be_hidden()
+        # A análise léxica continua sendo exibida normalmente.
+        expect(self.pagina.locator("#analise-lexica")).to_be_visible()
+
+    def test_entrada_grande_e_estranha_nao_quebra_a_interface(self):
+        codigo = "x = " + "(" * 250 + "1" + ")" * 250 + "\n" + "y = 1 + 2 * 3\n" * 300
+        self.preencher(codigo)
+        self.analisar_e_esperar("sintatico_erros")
+        expect(self.pagina.locator("#lista-erros-sintaticos li").first).to_contain_text("aninhadas demais")
+        self.preencher("y = 1 + 2 * 3\n" * 400)
+        self.analisar_e_esperar("analise_ok")
+        expect(self.pagina.locator("#arvore")).to_be_visible()
+
+    def test_editar_codigo_marca_a_arvore_como_desatualizada(self):
+        self.preencher("x = 1\n")
+        self.analisar_e_esperar("analise_ok")
+        self.codigo.press("End")
+        self.pagina.keyboard.type(" ")
+        expect(self.pagina.locator("#aviso-desatualizado-sint")).to_be_visible()
+
+
+class TestCelularSintatico(BaseInterface):
+    def test_arvore_no_celular_sem_rolagem_horizontal_da_pagina(self):
+        contexto = _navegador.new_context(viewport={"width": 390, "height": 844}, has_touch=True, is_mobile=True)
+        pagina = contexto.new_page()
+        try:
+            pagina.goto(BASE_URL + "/")
+            pagina.select_option("#exemplo", "repeticao")
+            pagina.locator("#analisar").tap()
+            expect(pagina.locator("#resultado")).to_have_attribute("data-estado", "analise_ok")
+            pagina.locator('#arvore [data-tipo="REPETICAO"] > .no-linha').tap()
+            expect(pagina.locator("#no-detalhes")).to_contain_text("repeticao")
+            self.assertLessEqual(pagina.evaluate("document.documentElement.scrollWidth"), 390)
         finally:
             contexto.close()
 

@@ -4,10 +4,14 @@
 
 import { contarTexto, validarCodigo } from "./validacao.js";
 import { CATEGORIAS, normalizarQuebras, resumoContagem, rotuloLexema, segmentarCodigo } from "./lexico.js";
+import { iniciarPainelSintatico } from "./painel-sintatico.js";
+import { textoEncontrado, textoEsperado } from "./sintatico.js";
 
 const TITULOS = {
+  analise_ok: "Análise concluída",
   lexico_ok: "Análise léxica concluída",
   lexico_erros: "Erros léxicos encontrados",
+  sintatico_erros: "Erros sintáticos encontrados",
   entrada: "Revise o código-fonte",
   comunicacao: "Sem resposta do servidor",
   inesperado: "Algo deu errado",
@@ -87,6 +91,7 @@ export function iniciarInterface(raiz, { enviar, exemplos }) {
     }`;
     el.numeros.scrollTop = el.codigo.scrollTop;
     if (!el.analise.hidden) el.desatualizado.hidden = false;
+    painel?.marcarDesatualizado();
   }
   el.codigo.addEventListener("input", atualizarEditor);
   el.codigo.addEventListener("scroll", () => {
@@ -125,6 +130,9 @@ export function iniciarInterface(raiz, { enviar, exemplos }) {
     el.codigo.setSelectionRange(ini, Math.min(fim, el.codigo.value.length));
   }
 
+  // Painel da análise sintática (AST, derivação e passo a passo do parser).
+  const painel = iniciarPainelSintatico(raiz, { selecionarNoEditor });
+
   el.limpar.addEventListener("click", () => {
     el.codigo.value = "";
     el.exemplo.value = "";
@@ -145,8 +153,8 @@ export function iniciarInterface(raiz, { enviar, exemplos }) {
         { className: "como-usar" },
         criar("li", { textContent: "Escreva um programa em Python ou escolha um exemplo." }),
         criar("li", { textContent: "Clique em Analisar código." }),
-        criar("li", { textContent: "Veja os tokens reconhecidos e os erros léxicos aqui." }),
-        criar("li", { textContent: "Use o passo a passo, abaixo do editor, para acompanhar o scanner lendo o código." }),
+        criar("li", { textContent: "Veja aqui o resumo e os erros léxicos ou sintáticos." }),
+        criar("li", { textContent: "Abaixo do editor, acompanhe o scanner gerando os tokens e o parser montando a árvore sintática, passo a passo." }),
       ),
     );
   }
@@ -220,6 +228,57 @@ export function iniciarInterface(raiz, { enviar, exemplos }) {
     analise = null;
     el.analise.hidden = true;
     el.desatualizado.hidden = true;
+    painel.ocultar();
+  }
+
+  function listaDeErrosSintaticos(sintatico) {
+    if (!sintatico || !sintatico.executado || !sintatico.erros.length) return null;
+    const itens = sintatico.erros;
+    return criar(
+      "section",
+      { id: "lista-erros-sintaticos", className: "ocorrencias erros erros-sintaticos" },
+      criar("h4", { textContent: `Erros sintáticos (${itens.length})` }),
+      criar(
+        "ul",
+        {},
+        ...itens.map((erro, i) =>
+          criar(
+            "li",
+            { dataset: { codigo: erro.codigo } },
+            criar("span", { className: "selo-erro", textContent: "Erro sintático" }),
+            criar("p", { textContent: erro.mensagem }),
+            criar(
+              "dl",
+              { className: "erro-campos" },
+              criar("dt", { textContent: "Encontrado" }),
+              criar("dd", { textContent: textoEncontrado(erro) }),
+              erro.esperado.length ? criar("dt", { textContent: "Esperado" }) : null,
+              erro.esperado.length ? criar("dd", { textContent: textoEsperado(erro.esperado) }) : null,
+              criar("dt", { textContent: "Regra" }),
+              criar("dd", {}, criar("code", { className: "producao", textContent: erro.producao || erro.regra })),
+            ),
+            criar("button", {
+              type: "button",
+              className: "botao-texto",
+              textContent: "Mostrar no código",
+              "aria-label": `Mostrar no código o erro sintático da linha ${erro.linha}, coluna ${erro.coluna}`,
+              onclick: () => {
+                const passo = sintatico.passos.findIndex((p) => p.tipo === "erro" && p.erro === i);
+                if (passo >= 0) painel.irParaPasso(passo);
+                selecionarNoEditor(erro);
+              },
+            }),
+            criar("button", {
+              type: "button",
+              className: "botao-texto botao-ia",
+              textContent: "Entender erro com IA",
+              hidden: true,
+              dataset: { erro: String(i) },
+            }),
+          ),
+        ),
+      ),
+    );
   }
 
   function mostrarAnalise(codigo, dados) {
@@ -421,10 +480,14 @@ export function iniciarInterface(raiz, { enviar, exemplos }) {
       if (r.tipo === "sucesso" && Array.isArray(r.dados.tokens)) {
         const dados = r.dados;
         const ok = dados.sucesso === true;
+        const sint = dados.sintatico;
+        let estado = ok ? "lexico_ok" : "lexico_erros";
+        if (ok && sint && sint.executado) estado = sint.sucesso ? "analise_ok" : "sintatico_erros";
         mostrar(
-          ok ? "lexico_ok" : "lexico_erros",
+          estado,
           dados.mensagem,
           listaDeContagem(dados.contagem),
+          listaDeErrosSintaticos(sint),
           listaDeOcorrencias("lista-erros", "Erros léxicos", dados.erros ?? [], "erros", (i) => analise?.passoDoErro.get(i)),
           listaDeOcorrencias("lista-avisos", "Avisos", dados.avisos ?? [], "avisos", (i) => {
             const aviso = dados.avisos[i];
@@ -433,6 +496,8 @@ export function iniciarInterface(raiz, { enviar, exemplos }) {
           }),
         );
         mostrarAnalise(normalizarQuebras(codigo), dados);
+        if (sint) painel.mostrar(normalizarQuebras(codigo), dados);
+        else painel.ocultar();
       } else if (r.tipo === "sucesso") {
         ocultarAnalise();
         mostrar("inesperado", "Ocorreu um erro inesperado ao processar a solicitação. Tente novamente.");
@@ -453,5 +518,6 @@ export function iniciarInterface(raiz, { enviar, exemplos }) {
 
   atualizarEditor();
   mostrarVazio();
+  el.painel = painel;
   return el;
 }
