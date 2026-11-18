@@ -1,0 +1,142 @@
+{
+  "data": "2026-11-18 18:24:04",
+  "casos": [
+    {
+      "nome": "No MULTIPLICACAO da AST",
+      "pedido": {
+        "tipo": "no",
+        "codigo": "resultado = 10 + 5 * 2\n",
+        "referencia": 5,
+        "pergunta": "Por que a multiplicacao aparece abaixo da adicao?"
+      },
+      "http": 200,
+      "segundos": 125.4,
+      "resposta": {
+        "recebido": true,
+        "gerado_por_ia": true,
+        "modelo": "llama3.2",
+        "tipo": "no",
+        "pergunta": "Por que a multiplicacao aparece abaixo da adicao?",
+        "resposta": "Vamos entender como o compilador analisou o código e por que a multiplicação aparece abaixo da adição.\n\nO compilador identificou a operação de adição (`10 +`) e a operação de multiplicação (`5 *`) como dois tokens separados. Em seguida, ele analisou a regra de produção para a operação de soma (`comparacao = soma [ OPERADOR_RELACIONAL soma ]`) e identificou que a multiplicação é uma operação especial que precisa ser avaliada antes da adição.\n\nO compilador então criou um novo nó na árvore sintática, chamado `MULTIPLICACAO`, que representa a operação de multiplicação. Ele adicionou dois filhos a esse nó: um `LITERAL_INTEIRO` com o valor `5` e outro `LITERAL_INTEIRO` com o valor `2`. Esses filhos representam os termos que são multiplicados.\n\nO compilador também adicionou um atributo ao nó `MULTIPLICACAO`, chamado `papel`, que indica que a operação é realizada na direita. Isso significa que o resultado da multiplicação é usado como o valor da operação de adição.\n\nPor fim, o compilador adicionou um atributo chamado `regra` ao nó `MULTIPLICACAO`, que indica que a operação é representada pela regra `termo = fator { ( \"*\" | \"/\" | \"%\" ) fator } ;`. Isso é uma regra gramatical que define como a operação de multiplicação é representada na linguagem.\n\nEm resumo, a multiplicação aparece abaixo da adição porque o compilador identificou a operação de multiplicação como uma operação especial que precisa ser avaliada antes da adição, e criou um novo nó na árvore sintática para representar essa operação.",
+        "contexto_enviado": {
+          "codigo": "resultado = 10 + 5 * 2\n",
+          "no": {
+            "tipo": "MULTIPLICACAO",
+            "atributos": {
+              "operador": "*"
+            },
+            "papel": "direita",
+            "regra": "termo",
+            "producao": "termo = fator { ( \"*\" | \"/\" | \"%\" ) fator } ;",
+            "posicao": "linha 1, coluna 18 até linha 1, coluna 22",
+            "filhos": [
+              "LITERAL_INTEIRO: 5 (papel: esquerda)",
+              "LITERAL_INTEIRO: 2 (papel: direita)"
+            ]
+          },
+          "pai": "ADICAO: + (papel: valor)",
+          "subarvore": "MULTIPLICACAO: * (papel: direita) [linha 1, coluna 18]\n  LITERAL_INTEIRO: 5 (papel: esquerda) [linha 1, coluna 18]\n  LITERAL_INTEIRO: 2 (papel: direita) [linha 1, coluna 22]",
+          "trecho_do_codigo": "resultado = 10 + 5 * 2"
+        },
+        "aviso": "Explicação gerada por IA (Llama 3.2 via Ollama). Ela pode conter erros: o resultado oficial é o do scanner e do parser."
+      }
+    },
+    {
+      "nome": "Erro sintatico (':' ausente)",
+      "pedido": {
+        "tipo": "erro",
+        "codigo": "x = 1\nif x > 5\n    print(x)\n",
+        "referencia": 0
+      },
+      "http": 200,
+      "segundos": 100.0,
+      "resposta": {
+        "recebido": true,
+        "gerado_por_ia": true,
+        "modelo": "llama3.2",
+        "tipo": "erro",
+        "pergunta": "Explique este erro sintático: qual construção estava sendo analisada, o que o parser esperava, por que o código não atende à regra e como corrigir.",
+        "resposta": "Vamos analisar o erro sintático apresentado pelo compilador.\n\nO erro ocorre na linha 2 do código, na coluna 9. O parser estava analisando a construção `if x > 5`. A regra gramatical relacionada é a regra de condicional, especificada na produção `condicional = \"if\" expressao \":\" bloco { \"elif\" expressao \":\" bloco } [ \"else\" \":\" bloco ]`.\n\nO problema é que o código não termina a linha do if com dois pontos (`:`). Em Python, toda linha que abre um bloco (if, elif, else, while) termina com dois pontos. O código apresentado não atende a essa regra.\n\nO que o parser esperava era que a linha terminasse com `:` para indicar o início do bloco. Em vez disso, o código apresentado termina com uma nova linha (`↵`), o que não é o esperado.\n\nPara corrigir o erro, basta adicionar o ponto (`:`) no final da linha do if, como mostrado abaixo:\n\n```python\nx = 1\nif x > 5:\n    print(x)\n```\n\nCom essa mudança, o código atende à regra gramatical e o compilador não apresentará mais esse erro sintático.",
+        "contexto_enviado": {
+          "codigo": "x = 1\nif x > 5\n    print(x)\n",
+          "erro_sintatico": {
+            "codigo": "dois_pontos_ausente",
+            "mensagem": "Erro sintático na linha 2, coluna 9: era esperado ':' no fim da linha do if, mas foi encontrado o fim da linha. Em Python, toda linha que abre um bloco (if, elif, else, while) termina com dois-pontos.",
+            "encontrado": "NOVA_LINHA",
+            "esperado": [
+              ":"
+            ],
+            "regra": "condicional",
+            "producao": "condicional = \"if\" expressao \":\" bloco { \"elif\" expressao \":\" bloco } [ \"else\" \":\" bloco ] ;",
+            "linha": 2,
+            "coluna": 9
+          },
+          "linha_do_codigo": "x = 1\nif x > 5",
+          "tokens_da_linha": "PALAVRA_RESERVADA(if) IDENTIFICADOR(x) OPERADOR_RELACIONAL(>) LITERAL_INTEIRO(5) NOVA_LINHA(↵)"
+        },
+        "aviso": "Explicação gerada por IA (Llama 3.2 via Ollama). Ela pode conter erros: o resultado oficial é o do scanner e do parser."
+      }
+    },
+    {
+      "nome": "Token 'resultado'",
+      "pedido": {
+        "tipo": "token",
+        "codigo": "resultado = 10 + 5 * 2\n",
+        "referencia": 0
+      },
+      "http": 200,
+      "segundos": 82.2,
+      "resposta": {
+        "recebido": true,
+        "gerado_por_ia": true,
+        "modelo": "llama3.2",
+        "tipo": "token",
+        "pergunta": "Explique o que é este token, por que ele recebeu essa categoria e qual a função dele no código apresentado.",
+        "resposta": "Este token é um **IDENTIFICADOR**, pois é um nome de uma variável no código apresentado. Ele recebeu essa categoria porque é um nome de uma variável, que é um tipo de identificador em muitas linguagens de programação, incluindo o Python.\n\nA função desse token é indicar que é uma variável chamada \"resultado\", que é usada na expressão matemática \"10 + 5 * 2\". Esse identificador é usado para armazenar o resultado da expressão, que é calculado posteriormente.\n\nO token recebeu a categoria \"IDENTIFICADOR\" porque é um nome de uma variável, que é um tipo de identificador em muitas linguagens de programação.",
+        "contexto_enviado": {
+          "codigo": "resultado = 10 + 5 * 2\n",
+          "token": {
+            "tipo": "IDENTIFICADOR",
+            "lexema": "resultado",
+            "linha": 1,
+            "coluna": 1,
+            "linha_final": 1,
+            "coluna_final": 9,
+            "fora_do_subconjunto": false,
+            "categoria": "IDENTIFICADOR"
+          },
+          "linha_do_codigo": "resultado = 10 + 5 * 2",
+          "tokens_da_linha": "IDENTIFICADOR(resultado) OPERADOR_ATRIBUICAO(=) LITERAL_INTEIRO(10) OPERADOR_ARITMETICO(+) LITERAL_INTEIRO(5) OPERADOR_ARITMETICO(*) LITERAL_INTEIRO(2) NOVA_LINHA(↵)"
+        },
+        "aviso": "Explicação gerada por IA (Llama 3.2 via Ollama). Ela pode conter erros: o resultado oficial é o do scanner e do parser."
+      }
+    },
+    {
+      "nome": "Pergunta conceitual",
+      "pedido": {
+        "tipo": "pergunta",
+        "codigo": "",
+        "pergunta": "Qual a diferenca entre arvore de derivacao e AST?"
+      },
+      "http": 200,
+      "segundos": 130.9,
+      "resposta": {
+        "recebido": true,
+        "gerado_por_ia": true,
+        "modelo": "llama3.2",
+        "tipo": "pergunta",
+        "pergunta": "Qual a diferenca entre arvore de derivacao e AST?",
+        "resposta": "A diferença entre Árvore de Derivação (AD) e Árvore de Estrutura (AST) é que a AD é um conceito teórico que representa a sequência de regras necessárias para derivar um símbolo de um outro, enquanto o AST é uma representação visual da estrutura sintática de um programa.\n\nA AD é usada para descrever a regra gramatical que foi usada para gerar um token, enquanto o AST é uma representação da estrutura sintática do programa, incluindo a relação entre os tokens.\n\nPor exemplo, se a regra gramatical usada para gerar o token \"x = 5\" for \"Atribuição = IDENTIFICADOR '=' expressão\", a AD seria algo como:\n\nAD:\n  Atribuição -> IDENTIFICADOR '=' expressão\n\nJá o AST seria:\n\nAST:\n  {\n    tipo: Atribuição\n    identificador: x\n    operador: =\n    expressao: 5\n  }\n\nEm resumo, a AD é uma representação da regra gramatical usada para gerar um token, enquanto o AST é uma representação da estrutura sintática do programa.",
+        "contexto_enviado": {},
+        "aviso": "Explicação gerada por IA (Llama 3.2 via Ollama). Ela pode conter erros: o resultado oficial é o do scanner e do parser."
+      }
+    }
+  ],
+  "status": {
+    "disponivel": true,
+    "modelo": "llama3.2",
+    "modelo_instalado": true,
+    "mensagem": null
+  },
+  "erro_do_parser_usado": "Erro sintático na linha 2, coluna 9: era esperado ':' no fim da linha do if, mas foi encontrado o fim da linha. Em Python, toda linha que abre um bloco (if, elif, else, while) termina com dois-pontos."
+}

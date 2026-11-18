@@ -503,6 +503,7 @@ BASE_URL=http://localhost:8090 python -m unittest tests.e2e.test_interface -v
 | 27/10/2026 | Etapa 3 — Windows, Docker 29.8.2 (`scripts/testar.ps1`) | aprovado | aprovado | 47 de 47 | aprovada (build + healthcheck) |
 | 18/11/2026 | Etapa 4 — Linux, Python 3.13, Node 22, servidor local | 207 de 207 | 74 de 74 | 77 de 77 | não executada nesse ambiente |
 | 18/11/2026 | Etapa 4 — Windows, Docker (`scripts/testar.ps1`) | aprovado | aprovado | 77 de 77 | aprovada (build + healthcheck, com `ollama`) |
+| 18/11/2026 | Etapa 4 — Windows, Docker (`scripts/testar-ia.ps1`, após a correção da etapa 5) | — | — | — | 5 de 5: modelo instalado, volume persistente, 4 explicações do Llama 3.2, aplicação funcionando sem o Ollama |
 
 Evidências da execução no Docker — Etapa 2: [testes](docs/validacao/04-etapa2-testes-docker.png) e [interface](docs/validacao/05-etapa2-interface-docker.png); Etapa 3: [testes](docs/validacao/06-etapa3-testes-docker.png), [interface](docs/validacao/07-etapa3-interface-docker.png), [erros léxicos](docs/validacao/08-etapa3-erros-lexicos-docker.png) e [passo a passo](docs/validacao/09-etapa3-passo-a-passo-docker.png).
 
@@ -529,7 +530,7 @@ O registro completo, com os comandos, as falhas encontradas e as correções, es
 | 1 | Linguagem, estrutura inicial, Docker e "Hello, World!" | Concluída; validação limpa no Windows em 15/10/2026, com evidências em [`docs/validacao/`](docs/validacao/) |
 | 2 | Interface web, entrada de código, exemplos, comunicação, validações e testes automatizados | Concluída; validada no Docker (Windows) em 15/10/2026 |
 | 3 | Analisador léxico do subconjunto, tabela de tokens, código colorido, erros léxicos e passo a passo com `INDENT`/`DEDENT` | Concluída; validada no Docker (Windows) em 27/10/2026 |
-| 4 | Gramática EBNF, parser descendente recursivo, AST e árvore de derivação, construção passo a passo, erros sintáticos didáticos com recuperação; diferencial: assistente de IA com Ollama e Llama 3.2 | Esta versão (0.4.0) |
+| 4 | Gramática EBNF, parser descendente recursivo, AST e árvore de derivação, construção passo a passo, erros sintáticos didáticos com recuperação; diferencial: assistente de IA com Ollama e Llama 3.2 | Esta versão (0.4.0); validada no Docker (Windows) em 18/11/2026 |
 | 5 | Análise semântica (tabela de símbolos, uso de variáveis antes da atribuição, compatibilidade de tipos) | Prevista |
 
 ## 14. Analisador léxico (Etapa 3)
@@ -805,6 +806,25 @@ Toda resposta aparece com o selo **"Gerado por IA (llama3.2)"**, o tempo de gera
 | Cliente no navegador | 5 testes unitários (envio só ao backend, mensagens, cancelamento, tempo limite) | `frontend/tests/unit/api-ia.test.js` |
 | Interface | 8 testes com respostas simuladas (nó, erro, token, perguntas, indisponível, carregando/cancelar, navegador só fala com o backend) | `tests/e2e/test_interface.py` (`TestAssistenteIA`) |
 | Modelo real | Ollama no ar, modelo instalado, volume persistente após recriar o contêiner, 4 explicações geradas pelo Llama 3.2, aplicação funcionando com o Ollama parado | `scripts/testar-ia.ps1` (grava `docs/validacao/ia-demo.json`) |
+
+### Demonstração (resultado real no Docker, 18/11/2026)
+
+Gerada por `scripts/testar-ia.ps1`, com as respostas completas em [`docs/validacao/ia-demo.json`](docs/validacao/ia-demo.json). Exemplo:
+
+- **Pergunta:** `{"tipo": "erro", "codigo": "x = 1\nif x > 5\n    print(x)\n", "referencia": 0}`, usando a pergunta padrão para erros.
+- **Dados enviados ao modelo:** o erro `dois_pontos_ausente` do parser (linha 2, coluna 9, encontrado `NOVA_LINHA`, esperado `:`, regra `condicional` e sua produção), a linha do código, os tokens dessa linha e a gramática.
+- **Resposta do Llama 3.2** (100 s, trecho):
+
+> O erro ocorre na linha 2 do código, na coluna 9. O parser estava analisando a construção `if x > 5`. A regra gramatical relacionada é a regra de condicional […]. O problema é que o código não termina a linha do if com dois pontos (`:`). […] Para corrigir o erro, basta adicionar o ponto (`:`) no final da linha do if.
+
+| Caso da demonstração | Tempo | Avaliação |
+| --- | --- | --- |
+| Erro sintático | 100 s | correta e útil |
+| Token `resultado` | 82 s | correta, repetitiva |
+| Nó `MULTIPLICACAO` | 125 s | conclusão correta, mas cita a regra errada (`comparacao`) e não explica a escada de precedência |
+| Árvore de derivação × AST | 131 s | com erros conceituais |
+
+As explicações apoiadas em um diagnóstico concreto do parser foram melhores do que a resposta à pergunta conceitual livre. A avaliação completa está em [`docs/testes.md`](docs/testes.md).
 
 ### Limitações
 

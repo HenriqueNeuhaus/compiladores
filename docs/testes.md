@@ -94,6 +94,19 @@ Evidência: [`validacao/10-etapa4-testes-docker.png`](validacao/10-etapa4-testes
 
 **Falha 5a/5b — causa e correção.** "HTTP 0" significa que a requisição não chegou a receber resposta: a chamada falhou no próprio script, não no backend. A função `Postar` usava `Invoke-WebRequest` do Windows PowerShell 5.1, e o bloco `catch` devolvia 0 sempre que a exceção não trazia uma resposta HTTP, escondendo a causa real. O backend já era coberto por testes automatizados nesse cenário (`TestRegressaoSemIA`, com o Ollama inacessível), e todos tinham passado. **Correção:** a verificação passou para dentro do contêiner do backend (`python -m app.demo_ia --sem-ia`), sem depender do PowerShell. Ela grava o resultado em `docs/validacao/ia-sem-ollama.json`. Testada localmente com o Ollama inacessível: análise com HTTP 200 e AST construída; assistente com HTTP 503 e `ia_indisponivel`.
 
+`scripts\testar-ia.ps1`, 2ª execução, depois da correção ([`validacao/12-etapa4-testar-ia-2a-execucao.png`](validacao/12-etapa4-testar-ia-2a-execucao.png)): **5 de 5 verificações aprovadas**. Com o Ollama parado, a análise respondeu HTTP 200 com a AST, e o assistente respondeu HTTP 503 com `ia_indisponivel` ([`validacao/ia-sem-ollama.json`](validacao/ia-sem-ollama.json)).
+
+**Explicações geradas pelo Llama 3.2** ([`validacao/ia-demo.json`](validacao/ia-demo.json)), no processador, sem placa de vídeo:
+
+| Caso | Tempo | Avaliação do conteúdo (feita por nós, comparando com o resultado do parser) |
+| --- | --- | --- |
+| Erro sintático (`:` ausente) | 100,0 s | **Correta e útil.** Cita a linha e a coluna, a regra `condicional` e o que era esperado, e mostra o código corrigido. Usa só o diagnóstico do parser. |
+| Token `resultado` | 82,2 s | **Correta, mas repetitiva.** Explica que é `IDENTIFICADOR` e o papel da variável; repete a mesma frase duas vezes. |
+| Nó `MULTIPLICACAO` ("por que fica abaixo da adição?") | 125,4 s | **Parcialmente correta.** Acerta a conclusão (a multiplicação é avaliada antes), os filhos e a regra `termo`, mas cita a regra `comparacao` como se fosse a da soma e interpreta o papel "direita" de forma vaga. Não explica a escada de precedência. |
+| Pergunta conceitual (árvore de derivação × AST) | 130,9 s | **Com erros conceituais.** Chama a AST de "Árvore de Estrutura", diz que a árvore de derivação é "um conceito teórico" e que serve para "gerar um token". |
+
+Conclusão: a integração funciona como especificado (o modelo recebe os dados reais do compilador e responde dentro do tempo limite). A qualidade, porém, varia. As explicações ancoradas em um diagnóstico concreto do parser foram as melhores, e a pergunta conceitual livre foi a pior. Isso confirma a decisão de identificar toda resposta como "Gerado por IA", com o aviso de que pode conter erros, e de manter o resultado oficial sempre no scanner e no parser.
+
 ## Etapa 3 — Análise léxica (scanner) (27/10/2026)
 
 **Ambiente das execuções:** Linux, Python 3.13, Starlette 1.6.0, Uvicorn 0.53.0, Node.js 22.22, Playwright 1.56.0 com Chromium, servidor local `tests/e2e/servidor_local.py` (frontend + backend real). A execução no Docker é feita no Windows com `scripts\testar.ps1` e está registrada abaixo, em seção própria.

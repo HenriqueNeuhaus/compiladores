@@ -1,0 +1,13 @@
+{
+  "analise_http": 200,
+  "analise_ok": true,
+  "ia_http": 503,
+  "ia_resposta": {
+    "recebido": false,
+    "erro": {
+      "tipo": "ia_indisponivel",
+      "mensagem": "O assistente de IA está indisponível: o serviço Ollama não respondeu. A análise léxica e a sintática continuam funcionando normalmente. Verifique se o contêiner 'ollama' está em execução (docker compose ps)."
+    }
+  },
+  "data": "2026-11-18 18:31:45"
+}
