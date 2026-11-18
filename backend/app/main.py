@@ -1,14 +1,16 @@
 """API do visualizador educacional de compiladores (subconjunto de Python).
 
-Etapa 3: a API recebe o código-fonte, valida a entrada e executa a análise
-léxica (scanner), devolvendo tokens, erros léxicos e o passo a passo. A
-análise sintática será adicionada na Etapa 4, no mesmo endpoint.
+Etapa 4: a API recebe o código-fonte, valida a entrada, executa a análise
+léxica (scanner) e, se não houver erro léxico, a análise sintática (parser),
+devolvendo tokens, AST, erros léxicos e sintáticos e o passo a passo das
+duas fases. Os campos da Etapa 3 continuam no mesmo lugar.
 
 Endpoints:
 - GET  /api/health   -> verificação de saúde usada pelo Docker Compose;
 - GET  /api/hello    -> mensagem da Etapa 1, mantida por compatibilidade;
-- POST /api/analisar -> recebe {"codigo": "..."} e devolve o resultado da
-                        análise léxica em JSON.
+- POST /api/analisar -> recebe {"codigo": "..."} e devolve o resultado das
+                        análises léxica e sintática em JSON;
+- POST /api/ia/explicar -> explicação didática gerada pelo Ollama (opcional).
 """
 
 import json
@@ -20,12 +22,12 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 
-from . import scanner
+from . import parser, scanner
 from .validacao import LIMITE_CARACTERES, ErroValidacao, estatisticas, validar_corpo
 
 logger = logging.getLogger("compiladores")
 
-VERSAO = "0.3.0"
+VERSAO = "0.4.0"
 
 # Limite do corpo bruto da requisição, em bytes. Um caractere UTF-8 ocupa até
 # 4 bytes; a folga cobre as aspas e o nome do campo no JSON.
@@ -40,6 +42,28 @@ def mensagem_lexica(resultado: scanner.ResultadoLexico) -> str:
     plural = "erro léxico encontrado" if erros == 1 else "erros léxicos encontrados"
     return (f"Análise léxica concluída com {erros} {plural}. "
             f"Os trechos válidos foram reconhecidos como {total} tokens.")
+
+
+def contar_nos(no: dict | None) -> int:
+    if no is None:
+        return 0
+    return 1 + sum(contar_nos(f) for f in no["filhos"])
+
+
+def mensagem_geral(lexico: scanner.ResultadoLexico, sintatico: dict) -> str:
+    """Resumo das duas fases para a área de resultados."""
+    if not lexico.sucesso:
+        return mensagem_lexica(lexico) + " A análise sintática não foi executada."
+    total = len(lexico.tokens)
+    if sintatico["sucesso"]:
+        return (f"Análises léxica e sintática concluídas sem erros: {total} tokens "
+                f"reconhecidos e AST com {contar_nos(sintatico['ast'])} nós.")
+    erros = len(sintatico["erros"])
+    plural = "erro sintático" if erros == 1 else "erros sintáticos"
+    return (f"Análise léxica concluída sem erros ({total} tokens), mas a análise "
+            f"sintática encontrou {erros} {plural}.")
+
+
 MENSAGEM_ERRO_INTERNO = (
     "Ocorreu um erro inesperado ao processar a solicitação. Tente novamente."
 )
@@ -78,13 +102,24 @@ async def analisar(request: Request) -> JSONResponse:
     except ErroValidacao as erro:
         return resposta_erro(erro.tipo, erro.mensagem, erro.status)
 
-    resultado = scanner.analisar(codigo)
+    lexico, sintatico = parser.analisar(codigo)
+    dados_lexicos = lexico.como_dict()
     return JSONResponse(
         {
             "recebido": True,
-            "mensagem": mensagem_lexica(resultado),
+            "mensagem": mensagem_geral(lexico, sintatico),
             "estatisticas": estatisticas(codigo),
-            **resultado.como_dict(),
+            # Campos da Etapa 3, mantidos no mesmo lugar por compatibilidade.
+            **dados_lexicos,
+            # Etapa 4: resultado agrupado por fase.
+            "lexico": {
+                "sucesso": lexico.sucesso,
+                "mensagem": mensagem_lexica(lexico),
+                "tokens": dados_lexicos["tokens"],
+                "erros": dados_lexicos["erros"],
+                "avisos": dados_lexicos["avisos"],
+            },
+            "sintatico": sintatico,
         }
     )
 

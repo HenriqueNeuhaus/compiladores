@@ -14,21 +14,25 @@ cliente = ClienteASGI(app)
 
 class TestAnalisarRequisicoesValidas(unittest.TestCase):
     def test_codigo_valido_retorna_200_e_contrato(self):
-        # Contrato da Etapa 3: mantém os campos da Etapa 2 (recebido, mensagem,
-        # estatisticas) e acrescenta o resultado da análise léxica.
+        # Contrato da Etapa 4: mantém os campos das Etapas 2 e 3 no mesmo lugar
+        # e acrescenta "lexico" e "sintatico". A mensagem geral mudou de
+        # propósito: agora resume as duas fases.
         r = cliente.post("/api/analisar", json={"codigo": "x = 10\nprint(x)"})
         self.assertEqual(r.status, 200)
         self.assertIn("application/json", r.cabecalhos["content-type"])
         corpo = r.json()
         self.assertEqual(set(corpo), {"recebido", "mensagem", "estatisticas", "sucesso",
                                       "tokens", "erros", "avisos", "comentarios",
-                                      "contagem", "passos"})
+                                      "contagem", "passos", "lexico", "sintatico"})
         self.assertTrue(corpo["recebido"])
         self.assertTrue(corpo["sucesso"])
         self.assertEqual(corpo["estatisticas"], {"linhas": 2, "caracteres": 15})
         self.assertEqual(corpo["mensagem"],
-                         "Análise léxica concluída sem erros: 10 tokens reconhecidos.")
+                         "Análises léxica e sintática concluídas sem erros: 10 tokens "
+                         "reconhecidos e AST com 6 nós.")
         self.assertEqual(corpo["erros"], [])
+        self.assertEqual(corpo["lexico"]["mensagem"],
+                         "Análise léxica concluída sem erros: 10 tokens reconhecidos.")
 
     def test_codigo_com_erro_sintatico_e_recebido(self):
         r = cliente.post("/api/analisar", json={"codigo": "if x > 5\n    print(x)"})
@@ -158,7 +162,8 @@ class TestAnaliseLexicaPelaApi(unittest.TestCase):
                         "Verifique se ele faz parte do subconjunto suportado."}])
         self.assertEqual(corpo["mensagem"],
                          "Análise léxica concluída com 1 erro léxico encontrado. "
-                         "Os trechos válidos foram reconhecidos como 10 tokens.")
+                         "Os trechos válidos foram reconhecidos como 10 tokens. "
+                         "A análise sintática não foi executada.")
 
     def test_varios_erros_e_plural_da_mensagem(self):
         corpo = cliente.post("/api/analisar", json={"codigo": "a $ b ? c"}).json()
@@ -190,7 +195,7 @@ class TestAnaliseLexicaPelaApi(unittest.TestCase):
         self.assertNotIn("tokens", r.json())
 
     def test_falha_no_scanner_vira_erro_500_generico(self):
-        with mock.patch.object(main.scanner, "analisar", side_effect=IndexError("pos 9")), \
+        with mock.patch.object(main.parser.scanner, "analisar", side_effect=IndexError("pos 9")), \
                 self.assertLogs("compiladores", level="ERROR"):
             r = cliente.post("/api/analisar", json={"codigo": "x = 1"})
         self.assertEqual(r.status, 500)
@@ -206,6 +211,90 @@ class TestAnaliseLexicaPelaApi(unittest.TestCase):
         texto = arquivo.read_text(encoding="utf-8")
         ids = re.findall(r'id: "([a-z-]+)"', texto)
         self.assertGreaterEqual(len(ids), 3)
+
+
+class TestAnaliseSintaticaPelaApi(unittest.TestCase):
+    def post(self, codigo):
+        r = cliente.post("/api/analisar", json={"codigo": codigo})
+        self.assertEqual(r.status, 200)
+        return r.json()
+
+    def test_programa_valido_retorna_tokens_ast_e_sucesso(self):
+        corpo = self.post("resultado = 10 + 5 * 2\n")
+        self.assertTrue(corpo["lexico"]["sucesso"])
+        self.assertEqual(corpo["lexico"]["tokens"], corpo["tokens"])
+        sint = corpo["sintatico"]
+        self.assertTrue(sint["executado"])
+        self.assertTrue(sint["sucesso"])
+        self.assertEqual(sint["erros"], [])
+        ast = sint["ast"]
+        self.assertEqual(ast["tipo"], "PROGRAMA")
+        atrib = ast["filhos"][0]
+        self.assertEqual(set(atrib), {"id", "tipo", "regra", "papel", "linha", "coluna",
+                                      "linha_final", "coluna_final", "atributos", "passo",
+                                      "filhos"})
+        self.assertEqual(atrib["tipo"], "ATRIBUICAO")
+        self.assertEqual(atrib["filhos"][1]["tipo"], "ADICAO")
+        self.assertEqual(atrib["filhos"][1]["filhos"][1]["tipo"], "MULTIPLICACAO")
+        self.assertEqual(sint["contagem_nos"]["LITERAL_INTEIRO"], 3)
+        self.assertIsNotNone(sint["derivacao"])
+        self.assertEqual(sint["gramatica"]["soma"], 'soma = termo { ( "+" | "-" ) termo } ;')
+        self.assertTrue(sint["passos"])
+
+    def test_erro_sintatico_retorna_erros_e_ast_nula(self):
+        corpo = self.post("x = 1\nif x > 5\n    print(x)\n")
+        self.assertTrue(corpo["sucesso"])  # campo da Etapa 3: sucesso léxico
+        sint = corpo["sintatico"]
+        self.assertFalse(sint["sucesso"])
+        self.assertIsNone(sint["ast"])
+        self.assertIsNone(sint["derivacao"])
+        self.assertEqual(sint["erros"], [{
+            "tipo": "ERRO_SINTATICO", "codigo": "dois_pontos_ausente",
+            "linha": 2, "coluna": 9, "linha_final": 2, "coluna_final": 9,
+            "encontrado": "NOVA_LINHA", "encontrado_tipo": "NOVA_LINHA", "esperado": [":"],
+            "regra": "condicional",
+            "producao": ('condicional = "if" expressao ":" bloco { "elif" expressao ":" bloco } '
+                         '[ "else" ":" bloco ] ;'),
+            "mensagem": ("Erro sintático na linha 2, coluna 9: era esperado ':' no fim da linha "
+                         "do if, mas foi encontrado o fim da linha. Em Python, toda linha que "
+                         "abre um bloco (if, elif, else, while) termina com dois-pontos.")}])
+        self.assertEqual(corpo["mensagem"],
+                         "Análise léxica concluída sem erros (17 tokens), mas a análise "
+                         "sintática encontrou 1 erro sintático.")
+
+    def test_com_erro_lexico_o_parser_nao_executa_e_o_motivo_e_informado(self):
+        corpo = self.post("x = 1 $ 2\n")
+        self.assertFalse(corpo["lexico"]["sucesso"])
+        self.assertEqual(len(corpo["erros"]), 1)
+        sint = corpo["sintatico"]
+        self.assertFalse(sint["executado"])
+        self.assertFalse(sint["sucesso"])
+        self.assertIsNone(sint["ast"])
+        self.assertEqual(sint["erros"], [])
+        self.assertIn("não foi executada", sint["motivo"])
+
+    def test_varios_erros_sintaticos_no_plural(self):
+        corpo = self.post("x = 1 +\ny = * 2\n")
+        self.assertEqual(len(corpo["sintatico"]["erros"]), 2)
+        self.assertIn("2 erros sintáticos", corpo["mensagem"])
+
+    def test_programa_so_com_comentarios(self):
+        corpo = self.post("# nada\n")
+        self.assertTrue(corpo["sintatico"]["sucesso"])
+        self.assertEqual(corpo["sintatico"]["ast"]["filhos"], [])
+
+    def test_falha_no_parser_vira_erro_500_generico(self):
+        with mock.patch.object(main.parser, "analisar", side_effect=RecursionError("pilha")), \
+                self.assertLogs("compiladores", level="ERROR"):
+            r = cliente.post("/api/analisar", json={"codigo": "x = 1"})
+        self.assertEqual(r.status, 500)
+        self.assertNotIn("RecursionError", r.texto)
+
+    def test_entrada_grande_no_limite_nao_trava(self):
+        codigo = ("x = (1 + 2) * 3 - y\n" * 1100)[:LIMITE_CARACTERES]
+        corpo = self.post(codigo)
+        self.assertTrue(corpo["recebido"])
+        self.assertIn("sintatico", corpo)
 
 
 class TestRegressaoEtapa1(unittest.TestCase):
