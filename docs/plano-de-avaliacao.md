@@ -1,6 +1,6 @@
 # Plano de avaliação e formulário (Tarefa 4)
 
-> Detalha a seção 3.6 de [`materiais-e-metodos.md`](materiais-e-metodos.md#36-método-de-avaliação). Situação: **planejado**; a aplicação do formulário ainda não foi feita. Voltar ao [README](../README.md).
+> Detalha a seção 3.6 de [`materiais-e-metodos.md`](materiais-e-metodos.md#36-método-de-avaliação). Situação: formulário criado e em aplicação desde a apresentação parcial de 25/11/2026. Voltar ao [README](../README.md).
 
 ## 1. Visão geral
 
@@ -32,6 +32,8 @@
 | T5 (opcional) | Selecione um nó da AST e peça ao assistente de IA uma explicação. | Assistente de IA |
 
 ## 4. Formulário (Google Forms)
+
+**Link para responder:** https://forms.gle/Rew1G5XDrc7Gd8Dw8
 
 **Configuração:** coleta de e-mails desativada; sem login obrigatório; uma resposta por pessoa não exigida (para não pedir conta Google); nenhuma pergunta obrigatória além do consentimento.
 

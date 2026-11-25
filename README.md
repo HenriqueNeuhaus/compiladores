@@ -10,6 +10,7 @@ Software educacional web para estudar as **análises léxica e sintática** com 
 > - Proposta e seção Materiais e Métodos do artigo (escopo, arquitetura, fluxograma, critérios): [`docs/materiais-e-metodos.md`](docs/materiais-e-metodos.md)
 > - Casos de teste documentados (CT-01 a CT-45): [`docs/casos-de-teste.md`](docs/casos-de-teste.md)
 > - Plano de avaliação e formulário da avaliação por pares: [`docs/plano-de-avaliacao.md`](docs/plano-de-avaliacao.md)
+> - **Avalie o sistema (questionário anônimo):** https://forms.gle/Rew1G5XDrc7Gd8Dw8
 > - Definição do problema e revisão de literatura: [`docs/revisao-literatura.md`](docs/revisao-literatura.md)
 
 ![Tela principal do Visualizador de Compiladores](docs/interface/tela-principal.png)
